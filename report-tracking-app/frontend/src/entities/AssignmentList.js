@@ -1,6 +1,6 @@
 
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { authFetch } from "../utils/api";
 const AssignmentManagerActions = React.lazy(() => import("./AssignmentManagerActions"));
 const AssignmentSummaryForm = React.lazy(() => import("./AssignmentSummaryForm"));
@@ -11,6 +11,8 @@ const STATIONS_API_URL = "/api/stations/";
 const ANALYSTS_API_URL = "/api/analysts/";
 
 
+import { useLocation } from "react-router-dom";
+
 function AssignmentList({ analystView = false, username = null }) {
   const [assignments, setAssignments] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
@@ -18,6 +20,8 @@ function AssignmentList({ analystView = false, username = null }) {
   const [analysts, setAnalysts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(false);
+  const location = useLocation();
+  const assignmentRefs = useRef({});
 
 
   // Helper to ensure data is always an array
@@ -75,6 +79,23 @@ function AssignmentList({ analystView = false, username = null }) {
     const analyst = analysts.find((a) => a.id === id);
     return analyst ? analyst.user : id;
   };
+
+
+  // Scroll to assignment card if assignmentId is passed in location.state
+  useEffect(() => {
+    if (location.state && location.state.assignmentId) {
+      const id = location.state.assignmentId;
+      setTimeout(() => {
+        if (assignmentRefs.current[id]) {
+          assignmentRefs.current[id].scrollIntoView({ behavior: "smooth", block: "center" });
+          assignmentRefs.current[id].style.boxShadow = "0 0 0 4px #3182ce";
+          setTimeout(() => {
+            if (assignmentRefs.current[id]) assignmentRefs.current[id].style.boxShadow = "";
+          }, 2000);
+        }
+      }, 500);
+    }
+  }, [loading, location.state]);
 
   if (loading) return <div>Loading assignments...</div>;
 
@@ -200,7 +221,10 @@ function AssignmentList({ analystView = false, username = null }) {
                   {assignments.map((assignment) => {
                     const due = assignment.due_date || assignment.expiry || assignment.assigned_at;
                     return (
-                      <div key={assignment.id} style={{
+                      <div
+                        key={assignment.id}
+                        ref={el => assignmentRefs.current[assignment.id] = el}
+                        style={{
                         background: '#fff',
                         border: '1px solid #cbd5e1',
                         borderRadius: 8,
@@ -242,7 +266,10 @@ function AssignmentList({ analystView = false, username = null }) {
               <li style={{ color: '#718096', fontStyle: 'italic', padding: 16 }}>No assignments found.</li>
             )}
             {filteredAssignments.map((assignment) => (
-              <li key={assignment.id} style={{
+              <li
+                key={assignment.id}
+                ref={el => assignmentRefs.current[assignment.id] = el}
+                style={{
                 background: '#f7fafc',
                 border: '1px solid #cbd5e1',
                 borderRadius: 10,

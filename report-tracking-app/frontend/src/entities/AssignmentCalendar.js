@@ -1,10 +1,26 @@
-import React, { useEffect, useState } from "react";
+
+
+import React, { useState, useEffect } from "react";
+import Calendar from "react-calendar";
+import 'react-calendar/dist/Calendar.css';
+import { useNavigate } from "react-router-dom";
 
 const API_URL = "/api/assignments/";
 
+function getStatusColor(status, dueDate) {
+  const now = new Date();
+  const due = new Date(dueDate);
+  if (status === "APPROVED") return "green";
+  if (status === "WIP" && due < now) return "red"; // Overdue
+  if (status === "WIP" && due >= now) return "gold"; // Upcoming
+  return "gray";
+}
+
 function AssignmentCalendar() {
   const [assignments, setAssignments] = useState([]);
+  const [date, setDate] = useState(new Date());
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetch(API_URL)
@@ -14,84 +30,62 @@ function AssignmentCalendar() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Simple calendar: group assignments by date (assigned_at)
-  const grouped = assignments.reduce((acc, a) => {
-    const date = a.assigned_at ? a.assigned_at.slice(0, 10) : "Unknown";
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(a);
-    return acc;
-  }, {});
+  // Group assignments by date (YYYY-MM-DD)
+  const assignmentsByDate = {};
+  assignments.forEach(a => {
+    const dateField = a.due_date || a.assigned_at;
+    const day = dateField ? dateField.slice(0, 10) : null;
+    if (day) {
+      if (!assignmentsByDate[day]) assignmentsByDate[day] = [];
+      assignmentsByDate[day].push(a);
+    }
+  });
 
-  if (loading) return <div>Loading calendar...</div>;
+  // Render colored dots for each assignment on the calendar
+  function tileContent({ date, view }) {
+    if (view !== 'month') return null;
+    const day = date.toISOString().slice(0, 10);
+    const todaysAssignments = assignmentsByDate[day] || [];
+    return (
+      <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
+        {todaysAssignments.map((a, idx) => (
+          <span
+            key={idx}
+            title={a.status}
+            style={{
+              display: 'inline-block',
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: getStatusColor(a.status, a.due_date),
+              border: '1px solid #fff',
+              cursor: 'pointer'
+            }}
+            onClick={e => {
+              e.stopPropagation();
+              // Navigate to assignments view, scroll to assignment card
+              navigate('/assignments', { state: { assignmentId: a.id, assignmentDate: day } });
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div style={{
-      background: 'linear-gradient(120deg, #f0f4f8 0%, #e0e7ef 100%)',
-      minHeight: '100vh',
-      padding: '32px 0',
-    }}>
-      <div style={{
-        maxWidth: 800,
-        margin: '0 auto',
-        background: '#fff',
-        borderRadius: 16,
-        boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-        padding: 32,
-        border: '1px solid #e3e8ee',
-      }}>
-        <h2 style={{
-          color: '#2a4365',
-          borderBottom: '2px solid #bee3f8',
-          paddingBottom: 8,
-          marginBottom: 24,
-          fontWeight: 700,
-          letterSpacing: 1,
-        }}>Assignment Calendar (by Assigned Date)</h2>
-        {Object.keys(grouped).sort().map(date => (
-          <div key={date} style={{ marginBottom: 28 }}>
-            <div style={{
-              fontWeight: 600,
-              fontSize: 18,
-              color: '#2b6cb0',
-              marginBottom: 10,
-              borderLeft: '4px solid #63b3ed',
-              paddingLeft: 12,
-            }}>{date}</div>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {grouped[date].map(a => (
-                <li key={a.id} style={{
-                  background: '#f7fafc',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: 10,
-                  marginBottom: 12,
-                  padding: 16,
-                  boxShadow: '0 2px 8px rgba(44,62,80,0.04)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 16,
-                }}>
-                  <span style={{
-                    display: 'inline-block',
-                    minWidth: 90,
-                    fontWeight: 600,
-                    color: '#2a4365',
-                  }}>#{a.id}</span>
-                  <span style={{
-                    background: a.status === 'WIP' ? '#f6e05e' : a.status === 'SUBMITTED' ? '#bee3f8' : '#c6f6d5',
-                    color: a.status === 'WIP' ? '#744210' : a.status === 'SUBMITTED' ? '#2b6cb0' : '#22543d',
-                    borderRadius: 8,
-                    padding: '2px 10px',
-                    fontSize: 13,
-                    fontWeight: 600,
-                  }}>{a.status}</span>
-                  <span style={{ color: '#4a5568', fontSize: 15 }}>
-                    Campaign <strong>{a.campaign}</strong>, Station <strong>{a.station || '-'}</strong>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+    <div style={{ maxWidth: 800, margin: '0 auto', padding: 32 }}>
+      <h2>Assignment Calendar</h2>
+      <Calendar
+        value={date}
+        onChange={setDate}
+        tileContent={tileContent}
+        prev2Label={null}
+        next2Label={null}
+      />
+      <div style={{ marginTop: 16 }}>
+        <span style={{ color: 'red', marginRight: 16 }}>● Overdue</span>
+        <span style={{ color: 'gold', marginRight: 16 }}>● Upcoming</span>
+        <span style={{ color: 'green' }}>● Approved</span>
       </div>
     </div>
   );

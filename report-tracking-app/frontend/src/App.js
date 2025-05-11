@@ -7,6 +7,7 @@ import CampaignList from "./entities/CampaignList";
 import EntitiesTab from "./entities/EntitiesTab";
 import AssignmentForm from "./entities/AssignmentForm";
 import AssignmentList from "./entities/AssignmentList";
+import DashboardSummary from "./entities/DashboardSummary";
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 
 
@@ -105,7 +106,10 @@ function App() {
             ))}
           </div>
           <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: 32, border: '1px solid #e3e8ee', minHeight: 400 }}>
-            {activeTab === "dashboard" && <h1 style={{ color: '#2a4365' }}>Manager Dashboard (Coming Soon)</h1>}
+            {activeTab === "dashboard" && <DashboardSummary onNavigateTab={(tab, tabIndex) => {
+              setActiveTab(tab);
+              // Optionally handle tabIndex for EntitiesTab
+            }} />}
             {activeTab === "entities" && <><h1 style={{ color: '#2a4365' }}>Entities Management</h1><React.Suspense fallback={<div>Loading entities...</div>}><EntitiesTab /></React.Suspense></>}
             {activeTab === "campaigns" && <><h1 style={{ color: '#2a4365' }}>Campaign Management</h1><CampaignForm /><CampaignList /></>}
             {activeTab === "assignments" && <><h1 style={{ color: '#2a4365' }}>Assignments</h1><AssignmentForm /><React.Suspense fallback={<div>Loading assignments...</div>}><AssignmentList /></React.Suspense></>}
