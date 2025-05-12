@@ -25,16 +25,29 @@ function ClientList() {
   if (loading) return <div>Loading clients...</div>;
 
   return (
-    <div>
-      <h2>Clients</h2>
-      <ul>
-        {clients.map((client) => (
-          <li key={client.id}>
-            <strong>{client.name}</strong>
-            {client.description && <> - {client.description}</>}
-          </li>
-        ))}
-      </ul>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+      {clients.map((client) => (
+        <div
+          key={client.id}
+          style={{
+            background: '#f8f9fa',
+            border: '1px solid #e2e8f0',
+            borderRadius: 8,
+            boxShadow: 'none',
+            padding: 6,
+            minWidth: 70,
+            maxWidth: 90,
+            flex: '0 0 60px',
+            fontSize: 11,
+            textAlign: 'center',
+            marginBottom: 6,
+            color: '#222',
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>{client.name}</div>
+          {client.description && <div style={{ color: '#888', fontSize: 10 }}>{client.description}</div>}
+        </div>
+      ))}
     </div>
   );
 }

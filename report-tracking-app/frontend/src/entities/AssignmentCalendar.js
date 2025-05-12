@@ -7,14 +7,16 @@ import { useNavigate } from "react-router-dom";
 
 const API_URL = "/api/assignments/";
 
+// Overdue: red, Upcoming: green, Approved: blue
 function getStatusColor(status, dueDate) {
   const now = new Date();
   const due = new Date(dueDate);
-  if (status === "APPROVED") return "green";
   if (status === "WIP" && due < now) return "red"; // Overdue
-  if (status === "WIP" && due >= now) return "gold"; // Upcoming
+  if (status === "WIP" && due >= now) return "green"; // Upcoming
+  if (status === "APPROVED") return "#1976d2"; // Approved (blue)
   return "gray";
 }
+
 
 function AssignmentCalendar() {
   const [assignments, setAssignments] = useState([]);
@@ -41,51 +43,52 @@ function AssignmentCalendar() {
     }
   });
 
-  // Render colored dots for each assignment on the calendar
-  function tileContent({ date, view }) {
-    if (view !== 'month') return null;
+  // Fill the date cell background based on assignment status (priority: Overdue > Upcoming > Approved)
+  function tileClassName({ date, view }) {
+    if (view !== 'month') return '';
     const day = date.toISOString().slice(0, 10);
     const todaysAssignments = assignmentsByDate[day] || [];
-    return (
-      <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
-        {todaysAssignments.map((a, idx) => (
-          <span
-            key={idx}
-            title={a.status}
-            style={{
-              display: 'inline-block',
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: getStatusColor(a.status, a.due_date),
-              border: '1px solid #fff',
-              cursor: 'pointer'
-            }}
-            onClick={e => {
-              e.stopPropagation();
-              // Navigate to assignments view, scroll to assignment card
-              navigate('/assignments', { state: { assignmentId: a.id, assignmentDate: day } });
-            }}
-          />
-        ))}
-      </div>
-    );
+    // Priority: Overdue > Upcoming > Approved
+    let hasOverdue = false, hasUpcoming = false, hasApproved = false;
+    todaysAssignments.forEach(a => {
+      const color = getStatusColor(a.status, a.due_date);
+      if (color === 'red') hasOverdue = true;
+      else if (color === 'green') hasUpcoming = true;
+      else if (color === '#1976d2') hasApproved = true;
+    });
+    if (hasOverdue) return 'calendar-overdue';
+    if (hasUpcoming) return 'calendar-upcoming';
+    if (hasApproved) return 'calendar-approved';
+    return '';
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: 32 }}>
-      <h2>Assignment Calendar</h2>
-      <Calendar
-        value={date}
-        onChange={setDate}
-        tileContent={tileContent}
-        prev2Label={null}
-        next2Label={null}
-      />
-      <div style={{ marginTop: 16 }}>
-        <span style={{ color: 'red', marginRight: 16 }}>● Overdue</span>
-        <span style={{ color: 'gold', marginRight: 16 }}>● Upcoming</span>
-        <span style={{ color: 'green' }}>● Approved</span>
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'none' }}>
+      <div style={{
+        width: '100%',
+        maxWidth: 420,
+        background: 'linear-gradient(120deg, #f8fafc 60%, #e9f5ff 100%)',
+        borderRadius: 16,
+        boxShadow: '0 2px 16px #bee3f8',
+        padding: 24,
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}>
+        <h2 style={{ color: '#2a4365', fontWeight: 700, marginBottom: 12, letterSpacing: 1, textAlign: 'center' }}>Assignment Calendar</h2>
+        <Calendar
+          value={date}
+          onChange={setDate}
+          tileClassName={tileClassName}
+          prev2Label={null}
+          next2Label={null}
+        />
+        <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center', gap: 18 }}>
+          <span style={{ color: 'red', fontWeight: 600 }}>■ Overdue</span>
+          <span style={{ color: 'green', fontWeight: 600 }}>■ Upcoming</span>
+          <span style={{ color: '#1976d2', fontWeight: 600 }}>■ Approved</span>
+        </div>
       </div>
     </div>
   );

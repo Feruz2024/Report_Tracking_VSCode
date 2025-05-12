@@ -1,3 +1,21 @@
+/* Calendar assignment status backgrounds */
+.calendar-overdue.react-calendar__tile {
+  background: #ffebee !important;
+  border-radius: 8px !important;
+}
+.calendar-upcoming.react-calendar__tile {
+  background: #e8f5e9 !important;
+  border-radius: 8px !important;
+}
+.calendar-approved.react-calendar__tile {
+  background: #e3f2fd !important;
+  border-radius: 8px !important;
+}
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700;900&display=swap');
+
+body, html, #root {
+  font-family: 'Raleway', Arial, sans-serif !important;
+}
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

@@ -106,82 +106,123 @@ function CampaignForm({ onCampaignCreated }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <h3>Add Campaign</h3>
-      <div>
-        <label>
-          Name:{" "}
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            disabled={loading}
-          />
-        </label>
+      <div style={{ border: '1px solid #ccc', padding: '16px', borderRadius: '8px', marginBottom: '16px', maxWidth: '600px', margin: '0 auto' }}>
+        <h3>Add Campaign</h3>
+        <div>
+          <label>
+            Name:{" "}
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              disabled={loading}
+            />
+          </label>
+        </div>
+        <div>
+          <label>
+            Description:{" "}
+            <input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={loading}
+            />
+          </label>
+        </div>
+        <div>
+          <label>
+            Client:{" "}
+            <select
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              required
+              disabled={loading}
+            >
+              <option value="">Select a client</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div>
+          <label>
+            Stations (multi-select):{" "}
+            <select
+              multiple
+              value={selectedStations}
+              onChange={handleStationChange}
+              disabled={loading}
+              size={Math.min(6, stations.length)}
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+            >
+              {stations.map((station) => (
+                <option key={station.id} value={station.id}>
+                  {station.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
-      <div>
-        <label>
-          Description:{" "}
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            disabled={loading}
-          />
-        </label>
-      </div>
-      <div>
-        <label>
-          Client:{" "}
-          <select
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-            required
-            disabled={loading}
-          >
-            <option value="">Select a client</option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div>
-        <label>
-          Stations (multi-select):{" "}
-          <select
-            multiple
-            value={selectedStations}
-            onChange={handleStationChange}
-            disabled={loading}
-            size={Math.min(6, stations.length)}
-          >
-            {stations.map((station) => (
-              <option key={station.id} value={station.id}>
-                {station.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div>
+      <div style={{ border: '1px solid #ccc', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
         <label>Monitoring & Authentication Periods:</label>
         {monitoringPeriods.map((period, idx) => (
-          <div key={idx} style={{ border: "1px solid #ccc", margin: 4, padding: 4 }}>
-            <div>
-              Monitoring Start: <input type="date" value={period.monitoring_start} onChange={e => handlePeriodChange(idx, "monitoring_start", e.target.value)} required />
-              Monitoring End: <input type="date" value={period.monitoring_end} onChange={e => handlePeriodChange(idx, "monitoring_end", e.target.value)} required />
+          <div key={idx} style={{ border: '1px solid #ccc', margin: 4, padding: 4, borderRadius: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, alignItems: 'center' }}>
+              <span>Monitoring Start:</span>
+              <input
+                type="date"
+                value={period.monitoring_start}
+                onChange={(e) => handlePeriodChange(idx, 'monitoring_start', e.target.value)}
+                required
+              />
+              <span>End:</span>
+              <input
+                type="date"
+                value={period.monitoring_end}
+                onChange={(e) => handlePeriodChange(idx, 'monitoring_end', e.target.value)}
+                required
+              />
             </div>
-            <div>
-              Authentication Start: <input type="date" value={period.authentication_start} onChange={e => handlePeriodChange(idx, "authentication_start", e.target.value)} required />
-              Authentication End: <input type="date" value={period.authentication_end} onChange={e => handlePeriodChange(idx, "authentication_end", e.target.value)} required />
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, alignItems: 'center', marginTop: 4 }}>
+              <span>Authentication Start:</span>
+              <input
+                type="date"
+                value={period.authentication_start}
+                onChange={(e) => handlePeriodChange(idx, 'authentication_start', e.target.value)}
+                required
+              />
+              <span>End:</span>
+              <input
+                type="date"
+                value={period.authentication_end}
+                onChange={(e) => handlePeriodChange(idx, 'authentication_end', e.target.value)}
+                required
+              />
             </div>
             {monitoringPeriods.length > 1 && (
-              <button type="button" onClick={() => removePeriod(idx)} disabled={loading}>Remove</button>
+              <button
+                type="button"
+                onClick={() => removePeriod(idx)}
+                disabled={loading}
+                style={{ marginTop: 6 }}
+              >
+                Remove
+              </button>
             )}
           </div>
         ))}
-        <button type="button" onClick={addPeriod} disabled={loading}>Add Period</button>
+        <button
+          type="button"
+          onClick={addPeriod}
+          disabled={loading}
+          style={{ marginTop: 6 }}
+        >
+          Add Period
+        </button>
       </div>
       <button type="submit" disabled={loading || !name || !clientId || selectedStations.length === 0}>
         {loading ? "Adding..." : "Add Campaign"}

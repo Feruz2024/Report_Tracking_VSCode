@@ -76,14 +76,13 @@ function App() {
         <div style={{ float: "right", margin: 16 }}>
           Logged in as <strong>{username}</strong> <button onClick={handleLogout}>Logout</button>
         </div>
-        <div style={{ maxWidth: 1000, margin: '0 auto', padding: 32 }}>
+        <div style={{ maxWidth: 1600, margin: '0 auto', padding: 32 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
             {[
               { key: "dashboard", label: "Dashboard" },
               { key: "entities", label: "Entities" },
               { key: "campaigns", label: "Campaigns" },
               { key: "assignments", label: "Assignments" },
-              { key: "calendar", label: "Calendar" },
             ].map(tab => (
               <button
                 key={tab.key}
@@ -105,7 +104,7 @@ function App() {
               </button>
             ))}
           </div>
-          <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: 32, border: '1px solid #e3e8ee', minHeight: 400 }}>
+          <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: 32, border: '1px solid #e3e8ee', minHeight: 400, maxWidth: 1500, margin: '0 auto' }}>
             {activeTab === "dashboard" && <DashboardSummary onNavigateTab={(tab, tabIndex) => {
               setActiveTab(tab);
               // Optionally handle tabIndex for EntitiesTab
@@ -113,7 +112,6 @@ function App() {
             {activeTab === "entities" && <><h1 style={{ color: '#2a4365' }}>Entities Management</h1><React.Suspense fallback={<div>Loading entities...</div>}><EntitiesTab /></React.Suspense></>}
             {activeTab === "campaigns" && <><h1 style={{ color: '#2a4365' }}>Campaign Management</h1><CampaignForm /><CampaignList /></>}
             {activeTab === "assignments" && <><h1 style={{ color: '#2a4365' }}>Assignments</h1><AssignmentForm /><React.Suspense fallback={<div>Loading assignments...</div>}><AssignmentList /></React.Suspense></>}
-            {activeTab === "calendar" && <><h1 style={{ color: '#2a4365' }}>Assignment Calendar</h1><React.Suspense fallback={<div>Loading calendar...</div>}>{React.createElement(React.lazy(() => import("./entities/AssignmentCalendar")))}</React.Suspense></>}
           </div>
         </div>
       </div>

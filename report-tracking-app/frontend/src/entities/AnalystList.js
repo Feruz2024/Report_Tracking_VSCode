@@ -23,15 +23,28 @@ function AnalystList() {
   if (loading) return <div>Loading analysts...</div>;
 
   return (
-    <div>
-      <h2>Media Analysts</h2>
-      <ul>
-        {analysts.map((analyst) => (
-          <li key={analyst.id}>
-            <strong>{analyst.user}</strong>
-          </li>
-        ))}
-      </ul>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+      {analysts.map((analyst) => (
+        <div
+          key={analyst.id}
+          style={{
+            background: '#f8f9fa',
+            border: '1px solid #e2e8f0',
+            borderRadius: 8,
+            boxShadow: 'none',
+            padding: 6,
+            minWidth: 70,
+            maxWidth: 90,
+            flex: '0 0 60px',
+            fontSize: 11,
+            textAlign: 'center',
+            marginBottom: 6,
+            color: '#222',
+          }}
+        >
+          <div style={{ fontWeight: 600 }}>{analyst.user}</div>
+        </div>
+      ))}
     </div>
   );
 }
