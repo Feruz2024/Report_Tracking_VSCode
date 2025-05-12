@@ -1,5 +1,13 @@
+
 import React, { useState, useEffect } from "react";
 import { authFetch } from "../utils/api";
+import Box from "@mui/material/Box";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import Checkbox from "@mui/material/Checkbox";
+import ListItemText from "@mui/material/ListItemText";
 
 const API_URL = "/api/campaigns/";
 const CLIENTS_API_URL = "/api/clients/";
@@ -33,9 +41,9 @@ function CampaignForm({ onCampaignCreated }) {
       .catch(() => setStations([]));
   }, []);
 
-  const handleStationChange = (e) => {
-    const options = Array.from(e.target.options);
-    setSelectedStations(options.filter(o => o.selected).map(o => o.value));
+  const handleStationChange = (event) => {
+    const value = event.target.value;
+    setSelectedStations(typeof value === 'string' ? value.split(',') : value);
   };
 
   const handlePeriodChange = (idx, field, value) => {
@@ -147,25 +155,32 @@ function CampaignForm({ onCampaignCreated }) {
             </select>
           </label>
         </div>
-        <div>
-          <label>
-            Stations (multi-select):{" "}
-            <select
+        <Box sx={{ mt: 2, mb: 2 }}>
+          <FormControl fullWidth>
+            <InputLabel id="stations-multiselect-label">Stations (multi-select)</InputLabel>
+            <Select
+              labelId="stations-multiselect-label"
               multiple
               value={selectedStations}
               onChange={handleStationChange}
+              renderValue={(selected) =>
+                stations
+                  .filter((s) => selected.includes(s.id))
+                  .map((s) => s.name)
+                  .join(', ')
+              }
               disabled={loading}
-              size={Math.min(6, stations.length)}
-              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+              label="Stations (multi-select)"
             >
               {stations.map((station) => (
-                <option key={station.id} value={station.id}>
-                  {station.name}
-                </option>
+                <MenuItem key={station.id} value={station.id}>
+                  <Checkbox checked={selectedStations.indexOf(station.id) > -1} />
+                  <ListItemText primary={station.name} />
+                </MenuItem>
               ))}
-            </select>
-          </label>
-        </div>
+            </Select>
+          </FormControl>
+        </Box>
       </div>
       <div style={{ border: '1px solid #ccc', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
         <label>Monitoring & Authentication Periods:</label>
