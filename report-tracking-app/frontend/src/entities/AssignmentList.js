@@ -10,7 +10,6 @@ const CAMPAIGNS_API_URL = "/api/campaigns/";
 const STATIONS_API_URL = "/api/stations/";
 const ANALYSTS_API_URL = "/api/analysts/";
 
-
 import { useLocation } from "react-router-dom";
 
 function AssignmentList({ analystView = false, username = null }) {
