@@ -1,4 +1,20 @@
 from rest_framework import serializers
+from .models import Notification, Message
+
+# --- Notification Serializer ---
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'user', 'message', 'link', 'read', 'timestamp', 'deadline_date']
+        read_only_fields = ['id', 'timestamp']
+
+# --- Message Serializer ---
+class MessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Message
+        fields = ['id', 'sender', 'recipient', 'context', 'content', 'timestamp']
+        read_only_fields = ['id', 'timestamp']
+from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Client, Station, Campaign, MonitoringPeriod, MediaAnalystProfile, Assignment
 
@@ -25,10 +41,13 @@ class MonitoringPeriodSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class MediaAnalystProfileSerializer(serializers.ModelSerializer):
+    # Expose both username and user ID for frontend recipient selection
     user = serializers.StringRelatedField()
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
     class Meta:
         model = MediaAnalystProfile
-        fields = '__all__'
+        # Include model PK, username, and user_id
+        fields = ['id', 'user', 'user_id']
 
 class AssignmentSerializer(serializers.ModelSerializer):
     class Meta:

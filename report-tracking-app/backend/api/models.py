@@ -46,6 +46,12 @@ class MediaAnalystProfile(models.Model):
     def __str__(self):
         return self.user.username
 
+
+from django.db.models.signals import pre_save, post_save
+from django.dispatch import receiver
+from django.utils import timezone
+from django.contrib.auth.models import User as AuthUser
+
 class Assignment(models.Model):
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='assignments')
     station = models.ForeignKey(Station, on_delete=models.SET_NULL, null=True, blank=True, related_name='assignments')
@@ -67,6 +73,10 @@ class Assignment(models.Model):
     ]
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="WIP")
     submitted_at = models.DateTimeField(null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    memo = models.TextField(blank=True)
+    # Comment added by manager upon approval/rejection
+    manager_comment = models.TextField(blank=True, null=True)
 
     def clean(self):
         # Only validate if all fields are present
@@ -82,3 +92,101 @@ class Assignment(models.Model):
         if self.monitoring_period:
             s += f" / Period: {self.monitoring_period}"
         return s
+
+
+
+# --- Notification and Messaging Models ---
+
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    message = models.TextField()
+    link = models.URLField(blank=True, null=True)
+    read = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    deadline_date = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Notification for {self.user.username}: {self.message[:40]}"
+
+@receiver(pre_save, sender=Assignment)
+def assignment_pre_save(sender, instance, **kwargs):
+    # Cache old status before saving
+    if instance.pk:
+        try:
+            old = sender.objects.get(pk=instance.pk)
+            instance._old_status = old.status
+        except sender.DoesNotExist:
+            instance._old_status = None
+
+@receiver(post_save, sender=Assignment)
+def assignment_post_save(sender, instance, created, **kwargs):
+    # Import here to avoid circular
+    from .models import Notification
+    # New assignment: notify analyst
+    if created and instance.analyst and instance.analyst.user:
+        # Notify analyst of new assignment with link to it
+        Notification.objects.create(
+            user=instance.analyst.user,
+            message=f"New assignment: Campaign {instance.campaign.name}",
+            link=f"/assignments?assignmentId={instance.id}",
+            deadline_date=instance.due_date
+        )
+        # If assignment is already overdue at creation, send overdue notice
+        if instance.status == 'WIP' and instance.due_date and instance.due_date < timezone.now().date():
+            Notification.objects.create(
+                user=instance.analyst.user,
+                message=f"Assignment overdue for campaign {instance.campaign.name}",
+                link=f"/assignments?assignmentId={instance.id}",
+                deadline_date=instance.due_date
+            )
+    else:
+        old_status = getattr(instance, '_old_status', None)
+        new_status = instance.status
+        # Status changed
+        if new_status != old_status:
+            # Submitted: notify managers
+            if new_status == 'SUBMITTED':
+                # Notify all staff managers with link to review
+                managers = AuthUser.objects.filter(is_staff=True)
+                for mgr in managers:
+                    Notification.objects.create(
+                        user=mgr,
+                        message=f"Assignment submitted by {instance.analyst.user.username} for campaign {instance.campaign.name}",
+                        link=f"/assignments?assignmentId={instance.id}",
+                        deadline_date=instance.due_date
+                    )
+            # Approved: notify analyst
+            if new_status == 'APPROVED':
+                # Notify analyst of approval
+                Notification.objects.create(
+                    user=instance.analyst.user,
+                    message=f"Your assignment for campaign {instance.campaign.name} has been approved",
+                    link=f"/assignments?assignmentId={instance.id}" 
+                )
+            # Rejected: notify analyst
+            if new_status == 'REJECTED':
+                # Notify analyst of rejection
+                Notification.objects.create(
+                    user=instance.analyst.user,
+                    message=f"Your assignment for campaign {instance.campaign.name} has been rejected",
+                    link=f"/assignments?assignmentId={instance.id}" 
+                )
+        # Overdue check: if still WIP and past due
+        # Overdue check: if still WIP and past due, send only one overdue notification per save
+        if instance.status == 'WIP' and instance.due_date and instance.due_date < timezone.now().date():
+            Notification.objects.create(
+                user=instance.analyst.user,
+                message=f"Assignment overdue for campaign {instance.campaign.name}",
+                link=f"/assignments?assignmentId={instance.id}",
+                deadline_date=instance.due_date
+            )
+
+class Message(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
+    context = models.CharField(max_length=255, blank=True, help_text="Context (e.g., campaign/task id)")
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Message from {self.sender.username} to {self.recipient.username} at {self.timestamp}"
