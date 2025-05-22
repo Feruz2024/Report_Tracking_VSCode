@@ -22,8 +22,9 @@ function RegisterForm({ onRegister }) {
         body: JSON.stringify({ username, password, role }),
       });
       if (!res.ok) throw new Error("Registration failed");
+      const data = await res.json();
       setSuccess(true);
-      if (onRegister) onRegister(username, role);
+      if (onRegister) onRegister(data.token, data.username, data.role);
     } catch (err) {
       setError(err.message || "Registration failed");
     } finally {

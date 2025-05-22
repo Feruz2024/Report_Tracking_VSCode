@@ -23,7 +23,7 @@ function AssignmentForm({ onAssignmentCreated }) {
   const [stations, setStations] = useState([]);
   const [analysts, setAnalysts] = useState([]);
   const [campaignId, setCampaignId] = useState("");
-  const [stationId, setStationId] = useState("");
+  const [stationIds, setStationIds] = useState([]);
   const [analystId, setAnalystId] = useState("");
   const [dueDate, setDueDate] = useState(null); // For report submission date
   const [memo, setMemo] = useState(""); // For assignment memo
@@ -59,27 +59,30 @@ function AssignmentForm({ onAssignmentCreated }) {
       : [];
   };
 
-  // Handle form submission for assignment
+  // Handle form submission for assignment (multi-station)
+  // Handle form submission for assignment (multi-station, bulk endpoint)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      // Prepare assignment body
       const body = {
         campaign: campaignId,
         analyst: analystId,
-        station: stationId,
+        stations: stationIds,
         due_date: dueDate ? new Date(dueDate).toISOString().split('T')[0] : undefined,
         memo,
       };
-      const res = await authFetch(API_URL, {
+      const res = await authFetch(API_URL + "bulk_create/", {
         method: "POST",
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error("Failed to create assignment");
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to create assignments");
+      }
       setCampaignId("");
-      setStationId("");
+      setStationIds([]);
       setAnalystId("");
       setDueDate(null);
       setMemo("");
@@ -105,7 +108,7 @@ function AssignmentForm({ onAssignmentCreated }) {
             label="Campaign"
             onChange={e => {
               setCampaignId(e.target.value);
-              setStationId(""); // Reset station when campaign changes
+              setStationIds([]); // Reset stations when campaign changes
             }}
             required
             disabled={loading}
@@ -116,17 +119,24 @@ function AssignmentForm({ onAssignmentCreated }) {
           </Select>
         </FormControl>
       </Box>
-      {/* Station selection dropdown, filtered by campaign */}
+      {/* Station multi-select dropdown, filtered by campaign */}
       <Box sx={{ mb: 2 }}>
         <FormControl fullWidth>
-          <InputLabel id="station-select-label">Station</InputLabel>
+          <InputLabel id="station-select-label">Stations</InputLabel>
           <Select
             labelId="station-select-label"
-            value={stationId}
-            label="Station"
-            onChange={e => setStationId(e.target.value)}
+            multiple
+            value={stationIds}
+            label="Stations"
+            onChange={e => setStationIds(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
             required
             disabled={loading || !campaignId}
+            renderValue={(selected) =>
+              stations
+                .filter((s) => selected.includes(s.id))
+                .map((s) => s.name)
+                .join(', ')
+            }
           >
             {getCampaignStations().map(stId => {
               const st = stations.find(s => s.id === stId);
@@ -178,7 +188,7 @@ function AssignmentForm({ onAssignmentCreated }) {
           disabled={loading}
         />
       </Box>
-      <button type="submit" disabled={loading || !campaignId || !stationId || !analystId || !dueDate}>
+      <button type="submit" disabled={loading || !campaignId || stationIds.length === 0 || !analystId || !dueDate}>
         {loading ? "Assigning..." : "Assign"}
       </button>
       {error && <div style={{ color: "red" }}>{error}</div>}

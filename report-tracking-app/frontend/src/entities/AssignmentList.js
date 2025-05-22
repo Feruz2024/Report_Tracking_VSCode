@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { authFetch } from "../utils/api";
+import { useLocation } from "react-router-dom";
 const AssignmentManagerActions = React.lazy(() => import("./AssignmentManagerActions"));
 const AssignmentSummaryForm = React.lazy(() => import("./AssignmentSummaryForm"));
 
@@ -9,8 +10,6 @@ const API_URL = "/api/assignments/";
 const CAMPAIGNS_API_URL = "/api/campaigns/";
 const STATIONS_API_URL = "/api/stations/";
 const ANALYSTS_API_URL = "/api/analysts/";
-
-import { useLocation } from "react-router-dom";
 
 function AssignmentList({ analystView = false, username = null }) {
   const [assignments, setAssignments] = useState([]);
@@ -166,20 +165,6 @@ function AssignmentList({ analystView = false, username = null }) {
           fontWeight: 700,
           letterSpacing: 1,
         }}>{analystView ? "My Active Assignments" : "Assignments by Analyst (Performance View)"}</h2>
-        {analystView ? null : (
-          <pre style={{
-            background: '#f8fafc',
-            color: '#2a4365',
-            padding: '8px',
-            border: '1px solid #cbd5e1',
-            borderRadius: 8,
-            maxHeight: '200px',
-            overflow: 'auto',
-            marginBottom: 24,
-          }}>
-            {JSON.stringify(assignments, null, 2)}
-          </pre>
-        )}
         {/* Manager: Analyst cards in a responsive grid */}
         {!analystView ? (
           <div style={{

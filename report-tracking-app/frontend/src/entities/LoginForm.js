@@ -20,7 +20,7 @@ function LoginForm({ onLogin }) {
       });
       if (!res.ok) throw new Error("Invalid credentials");
       const data = await res.json();
-      if (onLogin) onLogin(data.token, username);
+      if (onLogin) onLogin(data.token, username, data.role);
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {

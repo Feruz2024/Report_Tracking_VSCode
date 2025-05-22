@@ -14,5 +14,5 @@ export async function authFetch(url, options = {}) {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
-  return fetch(url, { ...options, headers });
+  return fetch(url, { ...options, headers, credentials: 'include' });
 }

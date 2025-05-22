@@ -23,6 +23,13 @@ class Campaign(models.Model):
     description = models.TextField(blank=True)
     stations = models.ManyToManyField('Station', related_name='campaigns', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # Campaign status for dashboard filtering
+    STATUS_CHOICES = [
+        ("ACTIVE", "Active"),
+        ("COMPLETED", "Completed"),
+        ("CLOSED", "Closed"),
+    ]
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="ACTIVE")
 
     def __str__(self):
         return f"{self.name} ({self.client.name})"
@@ -146,6 +153,10 @@ def assignment_post_save(sender, instance, created, **kwargs):
         if new_status != old_status:
             # Submitted: notify managers
             if new_status == 'SUBMITTED':
+                # Auto-set submitted_at timestamp if not already set
+                if not instance.submitted_at:
+                    # Use sender to avoid direct model import
+                    sender.objects.filter(pk=instance.pk).update(submitted_at=timezone.now())
                 # Notify all staff managers with link to review
                 managers = AuthUser.objects.filter(is_staff=True)
                 for mgr in managers:

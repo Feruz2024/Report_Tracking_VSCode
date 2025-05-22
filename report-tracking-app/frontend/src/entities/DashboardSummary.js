@@ -3,6 +3,17 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, Typography, Grid, Box, CircularProgress, Tooltip, Fade } from "@mui/material";
 import AssignmentCalendar from "./AssignmentCalendar";
+// Icons for dashboard cards
+import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+import DnsIcon from '@mui/icons-material/Dns';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import SendIcon from '@mui/icons-material/Send';
+import BlockIcon from '@mui/icons-material/Block';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { authFetch } from "../utils/api";
 
 const API_CLIENTS = "/api/clients/";
@@ -36,7 +47,8 @@ function DashboardSummary({ onNavigateTab }) {
       authFetch(API_ASSIGNMENTS).then(res => res.ok ? res.json() : []),
     ]).then(([clients, campaigns, stations, analysts, assignments]) => {
       // Active campaigns: status is not 'COMPLETED' or 'CLOSED'
-      const activeCampaigns = campaigns.filter(c => !c.status || !["COMPLETED", "CLOSED"].includes(c.status)).length;
+      // Active campaigns: those explicitly marked ACTIVE
+      const activeCampaigns = campaigns.filter(c => c.status === 'ACTIVE').length;
       // Spots
       let scheduledSpots = 0, transmittedSpots = 0, missedSpots = 0;
       let gainedSpots = 0;
@@ -46,10 +58,14 @@ function DashboardSummary({ onNavigateTab }) {
         missedSpots += Number(a.missed_spots) || 0;
         gainedSpots += Number(a.gain_spots) || 0;
       });
+      const completedCampaigns = campaigns.filter(c => c.status === 'COMPLETED').length;
+      const closedCampaigns = campaigns.filter(c => c.status === 'CLOSED').length;
       setStats({
         clients: clients.length,
         campaigns: campaigns.length,
         activeCampaigns,
+        completedCampaigns,
+        closedCampaigns,
         stations: stations.length,
         analysts: analysts.length,
         scheduledSpots,
@@ -68,57 +84,73 @@ function DashboardSummary({ onNavigateTab }) {
     {
       label: "Total Clients",
       value: stats.clients,
-      icon: <span className="material-icons" style={{ fontSize: 22 }} aria-label="" title=""></span>,
+      icon: <PeopleOutlineIcon fontSize="large" color="primary" />,
       onClick: () => onNavigateTab ? onNavigateTab("entities", 0) : navigate("/entities", { state: { tab: 0 } }),
       tooltip: "View all clients"
     },
     {
       label: "Active Campaigns",
       value: stats.activeCampaigns,
-      icon: <span className="material-icons" style={{ fontSize: 22 }} aria-label="" title=""></span>,
+      icon: <PlayCircleOutlineIcon fontSize="large" color="success" />,
       onClick: () => onNavigateTab ? onNavigateTab("campaigns") : navigate("/campaigns"),
       sub: `of ${stats.campaigns} total`,
-      tooltip: "View all campaigns"
+      tooltip: "View active campaigns"
+    },
+    {
+      label: "Completed Campaigns",
+      value: stats.completedCampaigns,
+      icon: <CheckCircleOutlineIcon fontSize="large" color="action" />,
+      onClick: () => onNavigateTab ? onNavigateTab("campaigns") : navigate("/campaigns"),
+      sub: `of ${stats.campaigns} total`,
+      tooltip: "View completed campaigns"
+    },
+    {
+      label: "Closed Campaigns",
+      value: stats.closedCampaigns,
+      icon: <CancelOutlinedIcon fontSize="large" color="error" />,
+      onClick: () => onNavigateTab ? onNavigateTab("campaigns") : navigate("/campaigns"),
+      sub: `of ${stats.campaigns} total`,
+      tooltip: "View closed campaigns"
     },
     {
       label: "Total Stations",
       value: stats.stations,
-      icon: <span className="material-icons" style={{ fontSize: 22 }} aria-label="" title=""></span>,
+      icon: <DnsIcon fontSize="large" color="secondary" />,
       onClick: () => onNavigateTab ? onNavigateTab("entities", 2) : navigate("/entities", { state: { tab: 2 } }),
       tooltip: "View all stations"
     },
     {
       label: "Total Analysts",
       value: stats.analysts,
-      icon: <span className="material-icons" style={{ fontSize: 22 }} aria-label="" title=""></span>,
+      icon: <PersonOutlineIcon fontSize="large" color="primary" />,
       onClick: () => onNavigateTab ? onNavigateTab("entities", 1) : navigate("/entities", { state: { tab: 1 } }),
       tooltip: "View all analysts"
     },
     {
       label: "Scheduled Spots",
       value: stats.scheduledSpots,
-      icon: <span className="material-icons" style={{ fontSize: 22 }} aria-label="" title=""></span>,
+      icon: <EventAvailableIcon fontSize="large" color="info" />,
       onClick: () => onNavigateTab ? onNavigateTab("assignments") : navigate("/assignments"),
       tooltip: "Total scheduled spots"
     },
     {
       label: "Transmitted Spots",
       value: `${stats.transmittedSpots}  (${share(stats.transmittedSpots)}%)`,
-      icon: <span className="material-icons" style={{ fontSize: 22 }} aria-label="" title=""></span>,
+      icon: <SendIcon fontSize="large" color="success" />,
       onClick: () => onNavigateTab ? onNavigateTab("assignments") : navigate("/assignments"),
       tooltip: "Total transmitted spots and share of scheduled"
     },
     {
       label: "Missed Spots",
       value: `${stats.missedSpots}  (${share(stats.missedSpots)}%)`,
-      icon: <span className="material-icons" style={{ fontSize: 22 }} aria-label="" title=""></span>,
+      icon: <BlockIcon fontSize="large" color="error" />,
       onClick: () => onNavigateTab ? onNavigateTab("assignments") : navigate("/assignments"),
       tooltip: "Total missed spots and share of scheduled"
     },
     {
       label: "Gained Spots",
       value: `${stats.gainedSpots}  (${share(stats.gainedSpots)}%)`,
-      icon: <span className="material-icons" style={{ fontSize: 22 }} aria-label="" title=""></span>,
+      icon: <TrendingUpIcon fontSize="large" color="primary" />,
       onClick: () => onNavigateTab ? onNavigateTab("assignments") : navigate("/assignments"),
       tooltip: "Total gained spots and share of scheduled"
     },

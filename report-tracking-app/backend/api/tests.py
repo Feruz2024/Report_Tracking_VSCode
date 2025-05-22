@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from .models import Assignment, Notification, Campaign, MediaAnalystProfile, Client
 
 from rest_framework.test import APIClient
+from rest_framework import status as http_status
 
 
 class AssignmentNotificationTests(TestCase):
@@ -102,3 +103,50 @@ class AssignmentManagerCommentTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assignment.refresh_from_db()
         self.assertEqual(self.assignment.manager_comment, 'Needs revision')
+        
+class AssignmentSubmissionTimestampTests(TestCase):
+    """Test that submitted_at is auto-set when status flips to SUBMITTED"""
+    def setUp(self):
+        # Analyst and assignment
+        self.user = User.objects.create_user(username='usr', password='pass')
+        self.analyst = MediaAnalystProfile.objects.create(user=self.user)
+        self.client_obj = Client.objects.create(name='ClientY')
+        self.campaign = Campaign.objects.create(name='CampY', client=self.client_obj)
+        self.assignment = Assignment.objects.create(campaign=self.campaign, analyst=self.analyst)
+        self.api_client = APIClient()
+        # Authenticate as any user to allow patch
+        self.api_client.force_authenticate(user=self.user)
+
+    def test_submitted_at_set_on_patch(self):
+        # Ensure initially null
+        self.assertIsNone(self.assignment.submitted_at)
+        # Patch status
+        url = f"/api/assignments/{self.assignment.id}/"
+        res = self.api_client.patch(url, {'status': 'SUBMITTED'}, format='json')
+        self.assertEqual(res.status_code, 200)
+        # Reload from DB
+        self.assignment.refresh_from_db()
+        self.assertIsNotNone(self.assignment.submitted_at)
+        # submitted_at should be recent (within last minute)
+        now = timezone.now()
+        diff = now - self.assignment.submitted_at
+        self.assertTrue(diff < timedelta(minutes=1))
+        
+class CampaignStatusTests(TestCase):
+    """Test that Campaign status field defaults and can be updated"""
+    def setUp(self):
+        self.user = User.objects.create_user(username='admin', password='pass', is_staff=True)
+        self.client_api = APIClient()
+        self.client_api.force_authenticate(user=self.user)
+        self.client_obj = Client.objects.create(name='ClientZ')
+        self.campaign = Campaign.objects.create(name='CampZ', client=self.client_obj)
+
+    def test_default_status_active(self):
+        self.assertEqual(self.campaign.status, 'ACTIVE')
+
+    def test_patch_campaign_status(self):
+        url = f"/api/campaigns/{self.campaign.id}/"
+        response = self.client_api.patch(url, {'status': 'COMPLETED'}, format='json')
+        self.assertEqual(response.status_code, http_status.HTTP_200_OK)
+        self.campaign.refresh_from_db()
+        self.assertEqual(self.campaign.status, 'COMPLETED')

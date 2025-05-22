@@ -2,6 +2,8 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
+from django.contrib.auth import authenticate
+from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from django.db.models import Q
 from .models import Client, Station, Campaign, MonitoringPeriod, MediaAnalystProfile, Assignment, Notification, Message
@@ -110,3 +112,31 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         if errors:
             return Response({"created": created, "errors": errors}, status=207)
         return Response(created, status=201)
+
+@api_view(['POST'])
+def register(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    role = request.data.get('role', 'analyst')
+    if not username or not password:
+        return Response({'error': 'Username and password required.'}, status=status.HTTP_400_BAD_REQUEST)
+    if User.objects.filter(username=username).exists():
+        return Response({'error': 'Username already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+    user = User.objects.create_user(username=username, password=password)
+    if role == 'manager':
+        user.is_staff = True
+        user.save()
+    else:
+        MediaAnalystProfile.objects.create(user=user)
+    token, _ = Token.objects.get_or_create(user=user)
+    return Response({'token': token.key, 'username': user.username, 'role': role}, status=status.HTTP_201_CREATED)
+
+from rest_framework.authtoken.views import ObtainAuthToken
+class CustomAuthToken(ObtainAuthToken):
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, _ = Token.objects.get_or_create(user=user)
+        role = 'manager' if user.is_staff else 'analyst'
+        return Response({'token': token.key, 'username': user.username, 'role': role})
