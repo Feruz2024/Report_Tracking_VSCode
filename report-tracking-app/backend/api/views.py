@@ -200,8 +200,14 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         print(f"[AssignmentViewSet] User: {user.username} (ID: {user.id}), Staff: {user.is_staff}, Superuser: {user.is_superuser}")
 
-        if user.is_staff or user.is_superuser:
-            print("[AssignmentViewSet] User is staff or superuser. Querying all assignments.")
+
+        # Allow Admins and Managers (by group) to see all assignments
+        if (
+            user.is_staff or user.is_superuser or
+            user.groups.filter(name='Admins').exists() or
+            user.groups.filter(name='Managers').exists()
+        ):
+            print("[AssignmentViewSet] User is staff, superuser, admin, or manager. Querying all assignments.")
             all_assignments = Assignment.objects.all()
             print(f"[AssignmentViewSet] Found {all_assignments.count()} total assignments in DB via Assignment.objects.all().")
             return all_assignments.order_by('-assigned_at')

@@ -73,21 +73,37 @@ class MediaAnalystProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'user_id']
 
 class AssignmentSerializer(serializers.ModelSerializer):
+
     analyst_user = serializers.SerializerMethodField()
+    analyst_user_id = serializers.SerializerMethodField()
+    analyst_user_full_name = serializers.SerializerMethodField()
 
     def get_analyst_user(self, obj):
         if obj.analyst and obj.analyst.user:
             return obj.analyst.user.username
         return None
 
+    def get_analyst_user_id(self, obj):
+        if obj.analyst and obj.analyst.user:
+            return obj.analyst.user.id
+        return None
+
+    def get_analyst_user_full_name(self, obj):
+        if obj.analyst and obj.analyst.user:
+            return obj.analyst.user.get_full_name() or obj.analyst.user.username
+        return None
+
+
     class Meta:
         model = Assignment
         fields = '__all__'
-        extra_fields = ['analyst_user']
+        extra_fields = ['analyst_user', 'analyst_user_id', 'analyst_user_full_name']
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
         rep['analyst_user'] = self.get_analyst_user(instance)
+        rep['analyst_user_id'] = self.get_analyst_user_id(instance)
+        rep['analyst_user_full_name'] = self.get_analyst_user_full_name(instance)
         return rep
 
     def validate(self, data):
