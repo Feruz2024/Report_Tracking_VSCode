@@ -16,11 +16,5 @@ class ApiConfig(AppConfig):
                 Notification.objects.create(user=user, message=msg)
         post_save.connect(assignment_status_notification, sender=Assignment, dispatch_uid='assignment_status_notification')
 
-        # Message notification
-        def create_message_notification(sender, instance, created, **kwargs):
-            if created:
-                Notification.objects.create(
-                    user=instance.recipient,
-                    message=f"New message from {instance.sender.username}: {instance.content[:40]}"
-                )
-        post_save.connect(create_message_notification, sender=Message, dispatch_uid='message_notification')
+        # Import and register analyst profile signal
+        import api.signals

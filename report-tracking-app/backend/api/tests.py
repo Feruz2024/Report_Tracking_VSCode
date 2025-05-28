@@ -1,3 +1,26 @@
+from rest_framework.test import APIClient, APITestCase
+
+# Permission tests for admin/manager entity creation
+class PermissionTestCase(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser('admin', 'admin@test.com', 'pass')
+        self.manager = User.objects.create_user('manager', 'manager@test.com', 'pass', is_staff=True)
+        self.client_user = User.objects.create_user('client', 'client@test.com', 'pass')
+
+    def test_admin_can_create_user(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post('/api/users/', {'username': 'newuser', 'password': 'pass'})
+        self.assertIn(response.status_code, (201, 200))
+
+    def test_manager_cannot_create_user(self):
+        self.client.force_authenticate(user=self.manager)
+        response = self.client.post('/api/users/', {'username': 'newuser2', 'password': 'pass'})
+        self.assertNotIn(response.status_code, (201, 200))
+
+    def test_manager_can_create_client(self):
+        self.client.force_authenticate(user=self.manager)
+        response = self.client.post('/api/clients/', {'name': 'TestClient'})
+        self.assertIn(response.status_code, (201, 200))
 from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta

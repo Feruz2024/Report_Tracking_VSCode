@@ -1,5 +1,19 @@
+
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
+
+# Accountant and Manager profile models
+class AccountantProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    # Add accountant-specific fields here if needed
+    def __str__(self):
+        return f"Accountant: {self.user.username}"
+
+class ManagerProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    # Add manager-specific fields here if needed
+    def __str__(self):
+        return f"Manager: {self.user.username}"
 
 class Client(models.Model):
     name = models.CharField(max_length=255)
@@ -47,7 +61,7 @@ class MonitoringPeriod(models.Model):
         return f"{self.campaign.name}: {self.monitoring_start} to {self.monitoring_end} (Auth: {self.authentication_start} to {self.authentication_end})"
 
 class MediaAnalystProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='analyst_profile')
     # Additional fields for analysts can be added here
 
     def __str__(self):
@@ -182,6 +196,8 @@ def assignment_post_save(sender, instance, created, **kwargs):
                     message=f"Your assignment for campaign {instance.campaign.name} has been rejected",
                     link=f"/assignments?assignmentId={instance.id}" 
                 )
+                # Reset status to WIP after rejection
+                sender.objects.filter(pk=instance.pk).update(status='WIP')
         # Overdue check: if still WIP and past due
         # Overdue check: if still WIP and past due, send only one overdue notification per save
         if instance.status == 'WIP' and instance.due_date and instance.due_date < timezone.now().date():
@@ -191,6 +207,40 @@ def assignment_post_save(sender, instance, created, **kwargs):
                 link=f"/assignments?assignmentId={instance.id}",
                 deadline_date=instance.due_date
             )
+
+@receiver(pre_save, sender=Campaign)
+def campaign_pre_save(sender, instance, **kwargs):
+    # Cache old status before saving
+    if instance.pk:
+        try:
+            old = sender.objects.get(pk=instance.pk)
+            instance._old_status = old.status
+        except sender.DoesNotExist:
+            instance._old_status = None
+
+@receiver(post_save, sender=Campaign)
+def campaign_post_save(sender, instance, created, **kwargs):
+    # Import here to avoid circular import issues if Notification is in the same file
+    # from .models import Notification # Already imported if Notification model is above
+    
+    old_status = getattr(instance, '_old_status', None)
+    new_status = instance.status
+
+    # Notify accountants if campaign status changes to "CLOSED"
+    if new_status == "CLOSED" and old_status != "CLOSED":
+        try:
+            accountant_group = Group.objects.get(name='Accountant')
+            accountant_users = User.objects.filter(groups=accountant_group)
+            for user_accountant in accountant_users:
+                Notification.objects.create(
+                    user=user_accountant,
+                    message=f"Campaign '{instance.name}' has been closed and is ready for payment processing.",
+                    link=f"/campaigns/{instance.id}" # Or a link to a specific accountant view
+                )
+        except Group.DoesNotExist:
+            print("ERROR: Accountant group not found. Cannot send campaign closure notifications to accountants.")
+        except Exception as e:
+            print(f"ERROR: Could not send notification to accountants: {e}")
 
 class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
