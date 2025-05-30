@@ -157,56 +157,58 @@ function DashboardSummary({ onNavigateTab }) {
   ];
 
   return (
-    <Box sx={{ width: '100%', maxWidth: 1300, mx: 'auto', mt: 2, mb: 4 }}>
-      <Typography variant="h4" sx={{ color: '#2a4365', mb: 3, fontWeight: 700, textAlign: 'center', letterSpacing: 1 }}>
-        <span style={{ filter: 'drop-shadow(0 2px 8px #bee3f8)' }}>📊</span> Dashboard Overview
-      </Typography>
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 6 }}><CircularProgress /></Box>
-      ) : (
-        <Grid container spacing={1} justifyContent="center" alignItems="stretch" sx={{ mb: 2 }}>
-          {cards.map((card, idx) => (
-            <Grid item xs={12} sm={6} md={3} lg={3} key={card.label} sx={{ display: 'flex', justifyContent: 'center' }}>
-              <Fade in timeout={600 + idx * 100}>
-                <div style={{ width: 220 }}>
-                  <Tooltip title={card.tooltip} arrow placement="top">
-                    <Card
-                      onClick={card.onClick}
-                      sx={{
-                        cursor: 'pointer',
-                        borderRadius: 2,
-                        boxShadow: 'none',
-                        border: '1px solid #e2e8f0',
-                        background: '#f8f9fa',
-                        minHeight: 120,
-                        height: 120,
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        position: 'relative',
-                        overflow: 'visible',
-                        p: 0.5,
-                        m: '0 auto',
-                      }}
-                    >
-                      <CardContent sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.5, p: 0.5 }}>
-                        <span>{card.icon}</span>
-                        <Typography variant="h6" sx={{ color: '#222', fontWeight: 600, letterSpacing: 0.5, fontSize: 14 }}>{card.label}</Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 800, color: '#2a4365', mt: 0.2, fontSize: 18 }}>{card.value}</Typography>
-                        {card.sub && <Typography variant="body2" sx={{ color: '#888', fontWeight: 500, fontSize: 11 }}>{card.sub}</Typography>}
-                      </CardContent>
-                    </Card>
-                  </Tooltip>
-                </div>
-              </Fade>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2 }}>
-        <AssignmentCalendar />
+    <>
+      <Box sx={{ width: '100%', maxWidth: 1300, mx: 'auto', mt: 2, mb: 4 }}>
+        <Typography variant="h4" sx={{ color: '#2a4365', mb: 3, fontWeight: 700, textAlign: 'center', letterSpacing: 1 }}>
+          <span style={{ filter: 'drop-shadow(0 2px 8px #bee3f8)' }}>📊</span> Dashboard Overview
+        </Typography>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 6 }}><CircularProgress /></Box>
+        ) : (
+          <Grid container spacing={1} justifyContent="center" alignItems="stretch" sx={{ mb: 2 }}>
+            {cards.map((card, idx) => (
+              <Grid item xs={12} sm={6} md={3} lg={3} key={card.label} sx={{ display: 'flex', justifyContent: 'center' }}>
+                <Fade in timeout={600 + idx * 100}>
+                  <div style={{ width: 220 }}>
+                    <Tooltip title={card.tooltip} arrow placement="top">
+                      <Card
+                        onClick={card.onClick}
+                        sx={{
+                          cursor: 'pointer',
+                          borderRadius: 2,
+                          boxShadow: 'none',
+                          border: '1px solid #e2e8f0',
+                          background: '#f8f9fa',
+                          minHeight: 120,
+                          height: 120,
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          position: 'relative',
+                          overflow: 'visible',
+                          p: 0.5,
+                          m: '0 auto',
+                        }}
+                      >
+                        <CardContent sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.5, p: 0.5 }}>
+                          <span>{card.icon}</span>
+                          <Typography variant="h6" sx={{ color: '#222', fontWeight: 600, letterSpacing: 0.5, fontSize: 14 }}>{card.label}</Typography>
+                          <Typography variant="h5" sx={{ fontWeight: 800, color: '#2a4365', mt: 0.2, fontSize: 18 }}>{card.value}</Typography>
+                          {card.sub && <Typography variant="body2" sx={{ color: '#888', fontWeight: 500, fontSize: 11 }}>{card.sub}</Typography>}
+                        </CardContent>
+                      </Card>
+                    </Tooltip>
+                  </div>
+                </Fade>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 2 }}>
+          <AssignmentCalendar />
+        </Box>
       </Box>
-    </Box>
+    </>
   );
 }
 

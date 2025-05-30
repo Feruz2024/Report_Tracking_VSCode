@@ -30,9 +30,10 @@ function AssignmentSummaryForm({ assignment, onSubmitted }) {
       return;
     }
     try {
-      const res = await fetch(`${API_URL}${assignment.id}/`, {
+      // Use authFetch to include Authorization header
+      const { authFetch } = await import("../utils/api");
+      const res = await authFetch(`${API_URL}${assignment.id}/`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           planned_spots: planned,
           missed_spots: missed,
@@ -53,6 +54,11 @@ function AssignmentSummaryForm({ assignment, onSubmitted }) {
   return (
     <form onSubmit={handleSubmit} style={{ border: "1px solid #ccc", padding: 8, margin: 8 }}>
       <h4>Submit Reconciliation Summary</h4>
+      {assignment.status === "REJECTED" && assignment.manager_comment && (
+        <div className="flashing-rejection">
+          🚫 REJECTION REASON: {assignment.manager_comment}
+        </div>
+      )}
       <div>
         <label>Planned Spots: <input type="number" min="0" value={plannedSpots} onChange={e => setPlannedSpots(e.target.value)} required disabled={loading} /></label>
       </div>

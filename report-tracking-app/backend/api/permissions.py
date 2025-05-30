@@ -43,3 +43,24 @@ class CanInteractWithMessages(BasePermission):
     """
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated
+
+
+# --- Custom permission for assignment PATCH by analyst ---
+class CanUpdateOwnAssignmentOrAdminManager(BasePermission):
+    """
+    Allow PATCH/PUT for assigned analyst on their own assignment.
+    Allow full access for Admins/Managers.
+    """
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        # Admins/Managers always allowed
+        if user.is_superuser or user.groups.filter(name__in=["Admins", "Managers"]).exists():
+            return True
+        # PATCH/PUT allowed for assigned analyst
+        if request.method in ["PATCH", "PUT"]:
+            analyst_profile = getattr(user, "analyst_profile", None)
+            return analyst_profile and obj.analyst_id == analyst_profile.id
+        # SAFE_METHODS (GET, HEAD, OPTIONS) allowed for authenticated
+        if request.method in SAFE_METHODS:
+            return user.is_authenticated
+        return False

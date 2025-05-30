@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useState, useRef } from "react";
 import { authFetch } from "../utils/api";
 import { useLocation } from "react-router-dom";
@@ -9,60 +7,77 @@ const AssignmentSummaryForm = React.lazy(() => import("./AssignmentSummaryForm")
 const API_URL = "/api/assignments/";
 const CAMPAIGNS_API_URL = "/api/campaigns/";
 const STATIONS_API_URL = "/api/stations/";
-const ANALYSTS_API_URL = "/api/analysts/";
+const ANALYSTS_API_URL = "/api/analysts/"; // This might be unused if we fetch users directly
+
 
 function AssignmentList({ analystView = false, username = null }) {
   const [assignments, setAssignments] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [stations, setStations] = useState([]);
+  // analysts state will now store user objects { id, user (username) }
   const [analysts, setAnalysts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(false);
   const location = useLocation();
   const assignmentRefs = useRef({});
+  // Removed filter state
 
 
   // Helper to ensure data is always an array
   const safeArray = (data) => (Array.isArray(data) ? data : []);
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([
-      authFetch(API_URL).then((res) => res.ok ? res.json() : []),
-      authFetch(CAMPAIGNS_API_URL).then((res) => res.ok ? res.json() : []),
-      authFetch(STATIONS_API_URL).then((res) => res.ok ? res.json() : []),
-      authFetch(ANALYSTS_API_URL).then((res) => res.ok ? res.json() : []),
+      authFetch(API_URL).then((res) => (res.ok ? res.json() : [])),
+      authFetch(CAMPAIGNS_API_URL).then((res) => (res.ok ? res.json() : [])),
+      authFetch(STATIONS_API_URL).then((res) => (res.ok ? res.json() : [])),
+      // Fetch users who are analysts
+      authFetch("/api/users/?is_analyst=true").then((res) => (res.ok ? res.json() : [])),
     ])
-      .then(([assignmentsData, campaignsData, stationsData, analystsData]) => {
+      .then(([assignmentsData, campaignsData, stationsData, usersData]) => {
         setAssignments(safeArray(assignmentsData));
         setCampaigns(safeArray(campaignsData));
         setStations(safeArray(stationsData));
-        setAnalysts(safeArray(analystsData));
+        // Map usersData to the structure expected by the rest of the component: { id, user (username), full_name }
+        setAnalysts(safeArray(usersData).map(user => ({ id: user.id, user: user.username, full_name: user.full_name || user.username })));
+        // DEBUG: Log assignments and analysts
+        console.log('[AssignmentList] assignments:', assignmentsData);
+        console.log('[AssignmentList] analysts:', usersData);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .catch((error) => {
+        console.error("Error fetching initial data:", error);
+        setLoading(false);
+      });
+  }, []); // Initial fetch, backend handles user-specific assignment filtering
 
   useEffect(() => {
     if (refresh) {
       setLoading(true);
       Promise.all([
-        authFetch(API_URL).then((res) => res.ok ? res.json() : []),
-        authFetch(CAMPAIGNS_API_URL).then((res) => res.ok ? res.json() : []),
-        authFetch(STATIONS_API_URL).then((res) => res.ok ? res.json() : []),
-        authFetch(ANALYSTS_API_URL).then((res) => res.ok ? res.json() : []),
+        authFetch(API_URL).then((res) => (res.ok ? res.json() : [])),
+        authFetch(CAMPAIGNS_API_URL).then((res) => (res.ok ? res.json() : [])),
+        authFetch(STATIONS_API_URL).then((res) => (res.ok ? res.json() : [])),
+        authFetch("/api/users/?is_analyst=true").then((res) => (res.ok ? res.json() : [])),
       ])
-        .then(([assignmentsData, campaignsData, stationsData, analystsData]) => {
+        .then(([assignmentsData, campaignsData, stationsData, usersData]) => {
           setAssignments(safeArray(assignmentsData));
           setCampaigns(safeArray(campaignsData));
           setStations(safeArray(stationsData));
-          setAnalysts(safeArray(analystsData));
+          setAnalysts(safeArray(usersData).map(user => ({ id: user.id, user: user.username, full_name: user.full_name || user.username })));
           setLoading(false);
+          setRefresh(false);
         })
-        .catch(() => setLoading(false));
+        .catch((error) => {
+          console.error("Error refreshing data:", error);
+          setLoading(false);
+          setRefresh(false);
+        });
     }
   }, [refresh]);
 
-  const handleSummarySubmitted = () => setRefresh(r => !r);
+  const handleSummarySubmitted = () => setRefresh(true); // Changed to setRefresh(true)
 
   const getCampaignName = (id) => {
     const c = campaigns.find((c) => c.id === id);
@@ -97,47 +112,44 @@ function AssignmentList({ analystView = false, username = null }) {
 
   if (loading) return <div>Loading assignments...</div>;
 
-  // If analystView, filter assignments to only those assigned to the current analyst
+
+  // No frontend filtering, use assignments as-is
   let filteredAssignments = assignments;
-  if (analystView && username) {
-    // Find analyst id for this username
-    const analyst = analysts.find(a => a.user === username);
-    const analystId = analyst ? analyst.id : null;
-    filteredAssignments = assignments.filter(a => a.analyst === analystId);
-  }
 
   // For manager view: group assignments by analyst and sort horizontally by performance
   let analystCards = [];
   if (!analystView) {
-    analystCards = analysts.map(analyst => {
-      // Get assignments for this analyst
-      const analystAssignments = filteredAssignments.filter(a => a.analyst === analyst.id);
-      // Count WIP and overdue assignments (assuming 'due_date' or 'expiry' field, fallback to assigned_at)
+    // Use the `analysts` state (list of user objects {id, user})
+    analystCards = analysts.map(analystUser => { // analystUser is { id, user (username) }
+      // Filter `filteredAssignments` (which are already role-appropriate) for this specific analyst
+      const analystAssignments = filteredAssignments.filter(a => a.analyst === analystUser.id);
+      
       const now = new Date();
       let wipCount = 0, overdueCount = 0;
       analystAssignments.forEach(a => {
         if (a.status === 'WIP') wipCount++;
-        // Overdue: status is WIP and due/expiry/assigned_at is in the past
         let due = a.due_date || a.expiry || a.assigned_at;
         if (a.status === 'WIP' && due && new Date(due) < now) overdueCount++;
       });
-      // Sort assignments by soonest due/expiry/assigned_at
+      
       const sortedAssignments = [...analystAssignments].sort((a, b) => {
         let ad = new Date(a.due_date || a.expiry || a.assigned_at);
         let bd = new Date(b.due_date || b.expiry || b.assigned_at);
         return ad - bd;
       });
+      
       return {
-        analyst,
+        analyst: analystUser, // Pass the whole analystUser object { id, user (username) }
         assignments: sortedAssignments,
         wipCount,
         overdueCount,
       };
     });
-    // Sort analysts: most overdue, then most WIP, then name
+
     analystCards.sort((a, b) => {
       if (b.overdueCount !== a.overdueCount) return b.overdueCount - a.overdueCount;
       if (b.wipCount !== a.wipCount) return b.wipCount - a.wipCount;
+      // Access username via a.analyst.user
       return a.analyst.user.localeCompare(b.analyst.user);
     });
   }
@@ -149,7 +161,9 @@ function AssignmentList({ analystView = false, username = null }) {
       padding: '32px 0',
     }}>
       <div style={{
-        maxWidth: 1500,
+        maxWidth: 1400,
+        minWidth: 340,
+        width: '100%',
         margin: '0 auto',
         background: '#fff',
         borderRadius: 16,
@@ -165,132 +179,218 @@ function AssignmentList({ analystView = false, username = null }) {
           fontWeight: 700,
           letterSpacing: 1,
         }}>{analystView ? "My Active Assignments" : "Assignments by Analyst (Performance View)"}</h2>
-        {/* Manager: Analyst cards in a responsive grid */}
+        {/* Removed filter controls */}
+        {/* Colorful cards grouped by analyst for manager/admin view */}
         {!analystView ? (
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '32px',
-            justifyContent: 'flex-start',
-            alignItems: 'stretch',
-            width: '100%',
-          }}>
-            {analystCards.map(({ analyst, assignments, wipCount, overdueCount }) => (
-              <div
-                key={analyst.id}
-                style={{
-                  flex: '1 1 340px',
-                  minWidth: 320,
-                  maxWidth: 400,
-                  background: overdueCount > 0 ? 'linear-gradient(120deg, #fffbea 0%, #f7fafc 100%)' : '#f7fafc',
-                  border: overdueCount > 0 ? '2px solid #ecc94b' : '1px solid #cbd5e1',
-                  borderRadius: 14,
-                  boxShadow: overdueCount > 0 ? '0 2px 12px rgba(236,201,75,0.08)' : '0 2px 8px rgba(44,62,80,0.04)',
-                  padding: 18,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 10,
-                  marginBottom: 24,
-                  height: '100%',
-                }}
-              >
-                <div style={{ fontWeight: 700, fontSize: 18, color: '#2b6cb0', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {analyst.user}
-                  {overdueCount > 0 && <span style={{ background: '#ecc94b', color: '#744210', borderRadius: 6, padding: '2px 8px', fontSize: 13, fontWeight: 600 }}>Overdue: {overdueCount}</span>}
-                  {wipCount > 0 && <span style={{ background: '#bee3f8', color: '#2a4365', borderRadius: 6, padding: '2px 8px', fontSize: 13, fontWeight: 600 }}>WIP: {wipCount}</span>}
-                </div>
-                <div style={{ fontSize: 14, color: '#718096', marginBottom: 8 }}>{assignments.length} assignment{assignments.length !== 1 ? 's' : ''}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {assignments.length === 0 && <div style={{ color: '#a0aec0', fontStyle: 'italic', padding: 8 }}>No assignments.</div>}
-                  {assignments.map((assignment) => {
-                    const due = assignment.due_date || assignment.expiry || assignment.assigned_at;
-                    return (
-                      <div
-                        key={assignment.id}
-                        ref={el => assignmentRefs.current[assignment.id] = el}
-                        style={{
-                        background: '#fff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: 8,
-                        padding: 10,
-                        marginBottom: 2,
-                        boxShadow: '0 1px 4px rgba(44,62,80,0.03)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 2,
-                      }}>
-                        <div style={{ fontWeight: 600, color: '#2b6cb0', fontSize: 15 }}>{getCampaignName(assignment.campaign)}{assignment.station && <span style={{ color: '#718096' }}> / {getStationName(assignment.station)}</span>}</div>
-                        <div style={{ fontSize: 13, color: '#4a5568' }}>Status: <b>{assignment.status}</b></div>
-                        <div style={{ fontSize: 13, color: '#718096' }}>Due: {due ? new Date(due).toLocaleDateString() : 'N/A'}</div>
-                        {/* Manager actions only for non-analyst view */}
-                        {assignment.status === "SUBMITTED" && (
-                          <div style={{ marginTop: 4 }}>
-                            <React.Suspense fallback={<div>Loading manager actions...</div>}>
-                              <AssignmentManagerActions assignment={assignment} onAction={handleSummarySubmitted} />
-                            </React.Suspense>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-
-            ))}
+          <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: 32 }}>
+            {/* Group assignments by analyst */}
+            {(() => {
+              if (filteredAssignments.length === 0) {
+                return <div style={{ color: '#a0aec0', fontStyle: 'italic', padding: 8 }}>No assignments.</div>;
+              }
+              // Group assignments by analyst user id (from assignment.analyst_user_id), then campaign, then sort by due date desc
+              const analystMap = {};
+              filteredAssignments.forEach(a => {
+                // Use the new analyst_user_id and analyst_user_full_name fields from the backend
+                const analystId = a.analyst_user_id;
+                const analystName = a.analyst_user_full_name || a.analyst_user || a.analyst;
+                if (!analystId || !analystName) return; // skip if missing
+                if (!analystMap[analystId]) analystMap[analystId] = { name: analystName, assignments: [] };
+                analystMap[analystId].assignments.push(a);
+              });
+              // Color palette
+              const colors = [
+                '#e3f2fd', // blue
+                '#fce4ec', // pink
+                '#e8f5e9', // green
+                '#fffde7', // yellow
+                '#f3e5f5', // purple
+                '#fbe9e7', // orange
+                '#ede7f6', // indigo
+                '#e0f2f1', // teal
+                '#f0f4c3', // lime
+                '#ffe0b2', // amber
+              ];
+              const analystIds = Object.keys(analystMap);
+              return analystIds.map((analystId, idx) => {
+                const { name: analystName, assignments: group } = analystMap[analystId];
+                const color = colors[idx % colors.length];
+                // Group by campaign
+                const campaignMap = {};
+                group.forEach(a => {
+                  if (!campaignMap[a.campaign]) campaignMap[a.campaign] = [];
+                  campaignMap[a.campaign].push(a);
+                });
+                const campaignIds = Object.keys(campaignMap);
+                return (
+                  <div key={analystId} style={{
+                    flex: `1 1 auto`,
+                    minWidth: Math.max(220, analystName.length * 13),
+                    maxWidth: 420,
+                    width: 'auto',
+                    background: color,
+                    border: '2px solid #cbd5e1',
+                    borderRadius: 16,
+                    boxShadow: '0 4px 16px rgba(44,62,80,0.06)',
+                    padding: 24,
+                    marginBottom: 8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 18,
+                    transition: 'min-width 0.2s, max-width 0.2s',
+                  }}>
+                    <div style={{ fontWeight: 700, fontSize: 20, color: '#2b6cb0', marginBottom: 8, letterSpacing: 1 }}>{analystName}</div>
+                    {campaignIds.map((cid, cidx) => {
+                      const campaignAssignments = campaignMap[cid];
+                      const campaign = campaigns.find(c => c.id === Number(cid));
+                      // Sort by due date descending
+                      campaignAssignments.sort((a, b) => {
+                        const ad = new Date(a.due_date || a.expiry || a.assigned_at);
+                        const bd = new Date(b.due_date || b.expiry || b.assigned_at);
+                        return bd - ad;
+                      });
+                      return (
+                        <div key={cid} style={{ marginBottom: 8 }}>
+                          <div style={{ fontWeight: 600, fontSize: 16, color: '#22577a', marginBottom: 6 }}>{campaign ? campaign.name : `Campaign ${cid}`}</div>
+                          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                            {campaignAssignments.map((assignment) => {
+                              const due = assignment.due_date || assignment.expiry || assignment.assigned_at;
+                              return (
+                                <li
+                                  key={assignment.id}
+                                  ref={el => assignmentRefs.current[assignment.id] = el}
+                                  style={{
+                                    background: '#fff',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: 8,
+                                    padding: 12,
+                                    marginBottom: 10,
+                                    boxShadow: '0 1px 4px rgba(44,62,80,0.03)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 4,
+                                    height: 'auto',
+                                    minHeight: 0,
+                                    wordBreak: 'break-word',
+                                  }}
+                                >
+                                  <div style={{ fontWeight: 600, color: '#2b6cb0', fontSize: 15 }}>{assignment.station && <span style={{ color: '#718096' }}>Station: {getStationName(assignment.station)}</span>}</div>
+                                  <div style={{ fontSize: 13, color: '#4a5568' }}>Status: <b>{assignment.status}</b></div>
+                                  <div style={{ fontSize: 13, color: '#718096' }}>Due: {due ? new Date(due).toLocaleDateString() : 'N/A'}</div>
+                                  {/* Manager actions only for non-analyst view */}
+                                  {assignment.status === "SUBMITTED" && (
+                                    <div style={{ marginTop: 4 }}>
+                                      <React.Suspense fallback={<div>Loading manager actions...</div>}>
+                                        <AssignmentManagerActions assignment={assignment} onAction={handleSummarySubmitted} />
+                                      </React.Suspense>
+                                    </div>
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              });
+            })()}
           </div>
         ) : (
-          // Analyst view: just show their assignments
-          <ul style={{
-            listStyle: 'none',
-            padding: 0,
-            margin: 0,
-          }}>
-            {filteredAssignments.length === 0 && (
-              <li style={{ color: '#718096', fontStyle: 'italic', padding: 16 }}>No assignments found.</li>
-            )}
-            {filteredAssignments.map((assignment) => (
-              <li
-                key={assignment.id}
-                ref={el => assignmentRefs.current[assignment.id] = el}
-                style={{
-                background: '#f7fafc',
-                border: '1px solid #cbd5e1',
-                borderRadius: 10,
-                marginBottom: 18,
-                padding: 18,
-                boxShadow: '0 2px 8px rgba(44,62,80,0.04)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-              }}>
-                <div style={{ fontSize: 18, fontWeight: 600, color: '#2b6cb0' }}>
-                  <span>{getCampaignName(assignment.campaign)}</span>
-                  {assignment.station && (
-                    <>
-                      <span style={{ color: '#718096' }}> / </span>
-                      <span style={{ color: '#4a5568' }}>{getStationName(assignment.station)}</span>
-                    </>
-                  )}
-                </div>
-                <div style={{ color: '#4a5568', fontSize: 15 }}>
-                  <span style={{ marginLeft: 8, color: '#718096' }}>on {assignment.assigned_at?.slice(0, 10)}</span>
-                </div>
-                {/* Analyst can only submit summary for WIP assignments assigned to them */}
-                {analystView && assignment.status === "WIP" && (
-                  <div style={{ marginTop: 8 }}>
-                    <React.Suspense fallback={<div>Loading summary form...</div>}>
-                      <AssignmentSummaryForm assignment={assignment} onSubmitted={handleSummarySubmitted} />
-                    </React.Suspense>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+          // Analyst view: group assignments by campaign
+          (() => {
+            if (filteredAssignments.length === 0) {
+              return <ul style={{listStyle: 'none', padding: 0, margin: 0}}><li style={{ color: '#718096', fontStyle: 'italic', padding: 16 }}>No assignments found.</li></ul>;
+            }
+            // Group assignments by campaign
+            const campaignMap = {};
+            filteredAssignments.forEach(a => {
+              if (!campaignMap[a.campaign]) campaignMap[a.campaign] = [];
+              campaignMap[a.campaign].push(a);
+            });
+            // Washed color palette
+            const colors = [
+              '#e3f2fd', // blue
+              '#fce4ec', // pink
+              '#e8f5e9', // green
+              '#fffde7', // yellow
+              '#f3e5f5', // purple
+              '#fbe9e7', // orange
+              '#ede7f6', // indigo
+              '#e0f2f1', // teal
+            ];
+            const campaignIds = Object.keys(campaignMap);
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                {campaignIds.map((cid, idx) => {
+                  const group = campaignMap[cid];
+                  const campaign = campaigns.find(c => c.id === Number(cid));
+                  const color = colors[idx % colors.length];
+                  return (
+                    <div key={cid} style={{
+                      border: '3px solid #2b6cb0',
+                      borderRadius: 18,
+                      background: color,
+                      padding: 24,
+                      marginBottom: 8,
+                      boxShadow: '0 4px 16px rgba(44,62,80,0.06)',
+                    }}>
+                      <div style={{ fontWeight: 700, fontSize: 22, color: '#2b6cb0', marginBottom: 16, letterSpacing: 1 }}>
+                        {campaign ? campaign.name : `Campaign ${cid}`}
+                      </div>
+                      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                        {group.map((assignment) => (
+                          <li
+                            key={assignment.id}
+                            ref={el => assignmentRefs.current[assignment.id] = el}
+                            style={{
+                              background: '#fff',
+                              border: '2px solid #cbd5e1',
+                              borderRadius: 10,
+                              marginBottom: 16,
+                              padding: 18,
+                              boxShadow: '0 2px 8px rgba(44,62,80,0.04)',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 8,
+                            }}
+                          >
+                            <div style={{ fontSize: 17, fontWeight: 600, color: '#2b6cb0' }}>
+                              {assignment.station && (
+                                <>
+                                  <span style={{ color: '#718096' }}>Station: </span>
+                                  <span style={{ color: '#4a5568' }}>{getStationName(assignment.station)}</span>
+                                </>
+                              )}
+                            </div>
+                            <div style={{ color: '#4a5568', fontSize: 15 }}>
+                              <span style={{ color: '#718096' }}>Assigned: {assignment.assigned_at?.slice(0, 10)}</span>
+                            </div>
+                            {/* Analyst can only submit summary for WIP assignments assigned to them */}
+                            {analystView && assignment.status === "WIP" && (
+                              <div style={{ marginTop: 8 }}>
+                                <React.Suspense fallback={<div>Loading summary form...</div>}>
+                                  <AssignmentSummaryForm assignment={assignment} onSubmitted={handleSummarySubmitted} />
+                                </React.Suspense>
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()
         )}
       </div>
     </div>
   );
 }
 
+
+// Named export for direct AssignmentList usage
 export default AssignmentList;
+

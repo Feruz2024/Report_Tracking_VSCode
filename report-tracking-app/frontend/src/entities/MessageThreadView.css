@@ -1,0 +1,126 @@
+.message-thread-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Fill parent height */
+    background-color: #fff;
+}
+
+.thread-header {
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+    background-color: #f7f7f7;
+}
+
+.thread-header h4 {
+    margin: 0;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.thread-context {
+    margin: 2px 0 0;
+    font-size: 0.85em;
+    color: #666;
+}
+
+.messages-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.message-item {
+    display: flex;
+    flex-direction: column;
+    max-width: 70%;
+    padding: 8px 12px;
+    border-radius: 18px;
+    word-wrap: break-word;
+}
+
+.message-item.sent {
+    align-self: flex-end;
+    background-color: #007bff; /* Blue for sent messages */
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.message-item.received {
+    align-self: flex-start;
+    background-color: #e9ecef; /* Light grey for received messages */
+    color: #333;
+    border-bottom-left-radius: 4px;
+}
+
+.message-content {
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.message-timestamp {
+    font-size: 0.75em;
+    margin-top: 4px;
+    text-align: right;
+    opacity: 0.8;
+}
+
+.message-item.sent .message-timestamp {
+    color: #f0f0f0;
+}
+
+.message-item.received .message-timestamp {
+    color: #555;
+}
+
+.message-input-form {
+    display: flex;
+    padding: 10px 15px;
+    border-top: 1px solid #eee;
+    background-color: #f7f7f7;
+}
+
+.message-input-form input[type="text"] {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    margin-right: 10px;
+    font-size: 0.95em;
+}
+
+.message-input-form input[type="text"]:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.message-input-form button {
+    padding: 10px 18px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background-color 0.2s ease;
+}
+
+.message-input-form button:hover {
+    background-color: #0056b3;
+}
+
+.message-input-form button:disabled {
+    background-color: #a0c7e4;
+    cursor: not-allowed;
+}
+
+.message-thread-loading,
+.message-thread-error {
+    padding: 20px;
+    text-align: center;
+    color: #777;
+    font-style: italic;
+    margin: auto; /* Center in the view */
+}

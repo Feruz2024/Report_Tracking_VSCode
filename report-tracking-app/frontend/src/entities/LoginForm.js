@@ -18,9 +18,13 @@ function LoginForm({ onLogin }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-      if (!res.ok) throw new Error("Invalid credentials");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ detail: "Invalid credentials or server error" }));
+        throw new Error(errorData.detail || "Invalid credentials");
+      }
       const data = await res.json();
-      if (onLogin) onLogin(data.token, username, data.role);
+      // Assuming the token endpoint response includes: token, role, user_id
+      if (onLogin) onLogin(data.token, username, data.role, data.user_id);
     } catch (err) {
       setError(err.message || "Login failed");
     } finally {

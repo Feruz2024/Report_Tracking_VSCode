@@ -4,7 +4,7 @@ import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
 import ClientForm from "./ClientForm";
 import ClientList from "./ClientList";
-import AnalystForm from "./AnalystForm";
+import UserForm from "./UserForm"; // Changed from AnalystForm
 import AnalystList from "./AnalystList";
 import StationForm from "./StationForm";
 import StationList from "./StationList";
@@ -25,6 +25,12 @@ function EntitiesTab() {
   }, [location.state?.tab]);
   const handleChange = (event, newValue) => setTab(newValue);
 
+  // Get role from localStorage (set in App.js after login)
+  const role = localStorage.getItem("role") || "analyst";
+  // Helper: is admin (superuser or in Admins group)
+  const isAdmin = role === 'admin';
+  // Helper: is manager (in Managers group)
+  const isManager = role === 'manager';
   return (
     <Box sx={{ width: "100%", display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
       <Tabs
@@ -35,27 +41,27 @@ function EntitiesTab() {
         centered
       >
         <Tab label="Clients" />
-        <Tab label="Analysts" />
+        <Tab label="Users" /> {/* Changed from Analysts */}
         <Tab label="Stations" />
       </Tabs>
       {tab === 0 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <h2 style={{ textAlign: 'center', width: '100%' }}>Client Management</h2>
-          <ClientForm />
+          {(isManager || isAdmin) && <ClientForm />}
           <ClientList />
         </Box>
       )}
       {tab === 1 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-          <h2 style={{ textAlign: 'center', width: '100%' }}>Media Analyst Management</h2>
-          <AnalystForm />
+          <h2 style={{ textAlign: 'center', width: '100%' }}>User Management</h2> {/* Changed from Media Analyst Management */}
+          {isAdmin && <UserForm />} {/* Only Admins can create users */}
           <AnalystList />
         </Box>
       )}
       {tab === 2 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <h2 style={{ textAlign: 'center', width: '100%' }}>Station Management</h2>
-          <StationForm />
+          {(isManager || isAdmin) && <StationForm />}
           <StationList />
         </Box>
       )}

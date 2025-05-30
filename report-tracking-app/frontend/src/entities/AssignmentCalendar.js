@@ -1,9 +1,11 @@
 
 
+
 import React, { useState, useEffect } from "react";
 import Calendar from "react-calendar";
 import 'react-calendar/dist/Calendar.css';
 import { useNavigate } from "react-router-dom";
+import { authFetch } from "../utils/api";
 
 const API_URL = "/api/assignments/";
 
@@ -25,23 +27,34 @@ function AssignmentCalendar() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(API_URL)
-      .then(res => res.json())
-      .then(setAssignments)
+    authFetch(API_URL)
+      .then(async res => {
+        if (!res.ok) {
+          if (res.status === 401) {
+            setAssignments([]);
+            return;
+          }
+          throw new Error("Failed to fetch assignments");
+        }
+        const data = await res.json();
+        setAssignments(Array.isArray(data) ? data : []);
+      })
       .catch(() => setAssignments([]))
       .finally(() => setLoading(false));
   }, []);
 
   // Group assignments by date (YYYY-MM-DD)
   const assignmentsByDate = {};
-  assignments.forEach(a => {
-    const dateField = a.due_date || a.assigned_at;
-    const day = dateField ? dateField.slice(0, 10) : null;
-    if (day) {
-      if (!assignmentsByDate[day]) assignmentsByDate[day] = [];
-      assignmentsByDate[day].push(a);
-    }
-  });
+  if (Array.isArray(assignments)) {
+    assignments.forEach(a => {
+      const dateField = a.due_date || a.assigned_at;
+      const day = dateField ? dateField.slice(0, 10) : null;
+      if (day) {
+        if (!assignmentsByDate[day]) assignmentsByDate[day] = [];
+        assignmentsByDate[day].push(a);
+      }
+    });
+  }
 
   // Fill the date cell background based on assignment status (priority: Overdue > Upcoming > Approved)
   function tileClassName({ date, view }) {

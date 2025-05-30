@@ -189,12 +189,23 @@ class MediaAnalystProfileViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(analyst)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+from .permissions import CanUpdateOwnAssignmentOrAdminManager
+
 class AssignmentViewSet(viewsets.ModelViewSet):
+    def get_object(self):
+        """
+        Override to ensure correct object lookup for permissions and PATCH.
+        Fix: Always use Assignment.objects.get(pk=...) for object-level permissions.
+        """
+        # Use the default lookup_field ('pk')
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs.get(lookup_url_kwarg)
+        obj = Assignment.objects.get(pk=lookup_value)
+        self.check_object_permissions(self.request, obj)
+        return obj
     queryset = Assignment.objects.all()
-    from .permissions import IsAdminOrManagerForEntities
-    permission_classes = [IsAdminOrManagerForEntities]  # Admins and Managers can create/edit/delete; all can view
+    permission_classes = [CanUpdateOwnAssignmentOrAdminManager]
     serializer_class = AssignmentSerializer
-    # permission_classes = [permissions.IsAuthenticated] # Add appropriate permissions
 
     def get_queryset(self):
         user = self.request.user

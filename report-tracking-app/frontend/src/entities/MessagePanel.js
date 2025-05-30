@@ -9,34 +9,62 @@ export default function MessagePanel({ contextId, recipientId: initialRecipientI
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
-  const [analysts, setAnalysts] = useState([]);
+  const [allUsers, setAllUsers] = useState([]); // State to hold all users for recipient list
   const [recipientId, setRecipientId] = useState(initialRecipientId || "");
   const [confirmation, setConfirmation] = useState("");
   const messagesEndRef = useRef(null);
+  const [showNewMessageAlert, setShowNewMessageAlert] = useState(false); // For new message visual cue
+  const initialLoadCompletedForCurrentContext = useRef(false); // Track initial load for current context
 
   async function fetchMessages() {
     setLoading(true);
     const res = await authFetch(`/api/messages/?context=${contextId}`);
     if (res.ok) {
-      const data = await res.json();
-      setMessages(data);
+      const newData = await res.json();
+
+      if (initialLoadCompletedForCurrentContext.current) { // Only act if not the initial load for this context
+        let newMessagesActuallyAdded = false;
+        if (newData.length > 0) { // Only if new data is not empty
+          const currentMessageIds = new Set(messages.map(m => m.id));
+          for (const newMessage of newData) {
+            if (!currentMessageIds.has(newMessage.id)) {
+              newMessagesActuallyAdded = true;
+              break;
+            }
+          }
+        }
+        // Consider if the list was non-empty and became empty, or if messages were removed
+        const significantChange = newMessagesActuallyAdded || 
+                                (messages.length > 0 && newData.length === 0) || 
+                                (newData.length < messages.length && messages.length > 0 && !newMessagesActuallyAdded);
+
+        if (significantChange) {
+          setShowNewMessageAlert(true);
+          setTimeout(() => setShowNewMessageAlert(false), 3500); // Show alert for 3.5 seconds
+        }
+      }
+      setMessages(newData); // Update the state
     }
     setLoading(false);
+    if (!initialLoadCompletedForCurrentContext.current) {
+      initialLoadCompletedForCurrentContext.current = true;
+    }
   }
 
   useEffect(() => {
+    initialLoadCompletedForCurrentContext.current = false; // Reset for new context/recipient
     fetchMessages();
     // Optionally, auto-refresh every 60s
     // const interval = setInterval(fetchMessages, 60000);
     // return () => clearInterval(interval);
   }, [contextId, recipientId]);
 
-  // Fetch analysts for manager recipient selection
+  // Fetch all users for recipient selection
   useEffect(() => {
-    authFetch("/api/analysts/")
-      .then((res) => res.ok ? res.json() : [])
-      .then((data) => setAnalysts(Array.isArray(data) ? data : []))
-      .catch(() => setAnalysts([]));
+    authFetch("/api/users/") // Fetch all users
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setAllUsers(Array.isArray(data) ? data.filter(u => u.is_active) : [])) // Filter for active users
+      .catch(() => setAllUsers([]));
   }, []);
 
   useEffect(() => {
@@ -58,7 +86,18 @@ export default function MessagePanel({ contextId, recipientId: initialRecipientI
     if (res.ok) {
       setContent("");
       setConfirmation("Message sent successfully.");
-      await fetchMessages(); // Refresh after send
+      // Optimistically add the sent message to the UI immediately
+      const now = new Date();
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `temp-${now.getTime()}`,
+          sender: "Me", // Optionally use current user name if available
+          content,
+          timestamp: now.toISOString(),
+        },
+      ]);
+      await fetchMessages(); // Still fetch to sync with server
       setTimeout(() => setConfirmation(""), 2500);
     } else {
       setConfirmation("Failed to send message.");
@@ -68,9 +107,10 @@ export default function MessagePanel({ contextId, recipientId: initialRecipientI
   }
 
   return (
-    <div style={{ minWidth: 280, maxWidth: 340, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 0, boxShadow: '0 2px 12px rgba(44,62,80,0.07)', overflow: 'hidden', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', height: 400 }}>
+    <div style={{ position: 'relative', zIndex: 1000, minWidth: 280, maxWidth: 340, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 0, boxShadow: '0 2px 12px rgba(44,62,80,0.07)', overflow: 'hidden', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', height: 400 }}>
       <div style={{ display: 'flex', alignItems: 'center', background: '#f7fafc', padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>
         <span style={{ fontWeight: 700, fontSize: 17, color: '#2a4365' }}>Messages</span>
+        {showNewMessageAlert && <span style={{ marginLeft: '10px', color: '#38a169', fontSize: '13px', fontWeight: '600' }}>New messages!</span>}
         <button onClick={fetchMessages} style={{ marginLeft: 'auto', fontSize: 12, background: '#e2e8f0', border: 'none', borderRadius: 6, padding: '2px 10px', cursor: 'pointer', color: '#2a4365' }}>Refresh</button>
       </div>
       {/* Recipient selector for manager */}
@@ -80,10 +120,11 @@ export default function MessagePanel({ contextId, recipientId: initialRecipientI
           value={recipientId}
           onChange={e => setRecipientId(e.target.value)}
           style={{ fontSize: 14, borderRadius: 6, border: '1px solid #cbd5e1', padding: '2px 8px', minWidth: 120 }}
+          disabled={!!initialRecipientId}
         >
           <option value="">Select recipient</option>
-          {analysts.map(a => (
-            <option key={a.id} value={a.user_id || a.user || a.id}>{a.user}</option>
+          {allUsers.map(user => (
+            <option key={user.id} value={user.id}>{user.username}</option>
           ))}
         </select>
       </div>

@@ -1,4 +1,6 @@
 
+
+// Completely rebuilt CampaignList.js for admin/manager portal, no filters, simple list
 import React, { useEffect, useState } from "react";
 import { authFetch } from "../utils/api";
 
@@ -14,9 +16,6 @@ function CampaignList() {
   const [monitoringPeriods, setMonitoringPeriods] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Helper to ensure data is always an array
-  const safeArray = (data) => (Array.isArray(data) ? data : []);
-
   useEffect(() => {
     Promise.all([
       authFetch(API_URL).then((res) => res.ok ? res.json() : []),
@@ -25,10 +24,10 @@ function CampaignList() {
       authFetch(MONITORING_PERIODS_API_URL).then((res) => res.ok ? res.json() : []),
     ])
       .then(([campaignsData, clientsData, stationsData, monitoringPeriodsData]) => {
-        setCampaigns(safeArray(campaignsData));
-        setClients(safeArray(clientsData));
-        setStations(safeArray(stationsData));
-        setMonitoringPeriods(safeArray(monitoringPeriodsData));
+        setCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
+        setClients(Array.isArray(clientsData) ? clientsData : []);
+        setStations(Array.isArray(stationsData) ? stationsData : []);
+        setMonitoringPeriods(Array.isArray(monitoringPeriodsData) ? monitoringPeriodsData : []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -38,47 +37,38 @@ function CampaignList() {
     const client = clients.find((c) => c.id === clientId);
     return client ? client.name : "Unknown";
   };
-
   const getStationNames = (stationIds) => {
     return stations.filter(s => stationIds.includes(s.id)).map(s => s.name);
   };
-
   const getMonitoringPeriods = (campaignId) => {
     return monitoringPeriods.filter(mp => mp.campaign === campaignId);
   };
 
   if (loading) return <div>Loading campaigns...</div>;
 
-  // Color palette for cards
-  const cardColors = [
-    '#f6d365', '#fda085', '#a1c4fd', '#c2e9fb', '#fbc2eb', '#fdcbf1', '#d4fc79', '#96e6a1', '#84fab0', '#8fd3f4'
-  ];
-
   return (
-    <div>
-      <h2 style={{ textAlign: 'center', marginBottom: 24 }}>Campaigns</h2>
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
-        gap: 24,
-        marginTop: 16
-      }}>
-        {campaigns.map((campaign, idx) => {
-          const bgColor = cardColors[idx % cardColors.length];
-          // campaign.stations may be array of ids or objects
-          const stationIds = Array.isArray(campaign.stations)
+    <>
+      <div>
+        <h2 style={{ textAlign: 'center', marginBottom: 24 }}>Campaigns</h2>
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: 24,
+          marginTop: 16
+        }}>
+          {campaigns.map((campaign, idx) => {
+            const stationIds = Array.isArray(campaign.stations)
             ? (typeof campaign.stations[0] === 'object' ? campaign.stations.map(s => s.id) : campaign.stations)
             : [];
           const stationNames = getStationNames(stationIds);
           const periods = getMonitoringPeriods(campaign.id);
-          // Get campaign start date (earliest monitoring_start)
           const campaignStart = periods.length > 0 ? periods.map(p => p.monitoring_start).sort()[0] : null;
           return (
             <div
               key={campaign.id}
               style={{
-                background: `linear-gradient(135deg, ${bgColor} 0%, #fff 100%)`,
+                background: '#f6d365',
                 borderRadius: 16,
                 boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
                 padding: '24px 32px',
@@ -126,8 +116,9 @@ function CampaignList() {
             </div>
           );
         })}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

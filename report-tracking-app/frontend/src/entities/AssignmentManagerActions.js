@@ -11,9 +11,10 @@ function AssignmentManagerActions({ assignment, onAction }) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_URL}${assignment.id}/`, {
+      // Use authFetch to include Authorization header
+      const { authFetch } = await import("../utils/api");
+      const res = await authFetch(`${API_URL}${assignment.id}/`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status,
           manager_comment: status === "REJECTED" ? comment : undefined,

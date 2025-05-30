@@ -34,7 +34,7 @@ function AnalystList() {
             boxShadow: 'none',
             padding: 6,
             minWidth: 70,
-            maxWidth: 90,
+            maxWidth: 70,
             flex: '0 0 60px',
             fontSize: 11,
             textAlign: 'center',

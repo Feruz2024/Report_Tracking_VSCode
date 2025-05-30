@@ -1,3 +1,21 @@
+/* Flashing rejection message for AssignmentSummaryForm */
+.flashing-rejection {
+  color: #e53e3e;
+  font-weight: bold;
+  background: #ffeaea;
+  border: 2px solid #e53e3e;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 16px;
+  text-align: center;
+  font-size: 1.1em;
+  animation: flash 1s linear infinite;
+}
+
+@keyframes flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
 .App {
   text-align: center;
 }
