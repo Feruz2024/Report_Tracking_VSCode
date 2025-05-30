@@ -25,7 +25,8 @@ export default function MessagesPage({ username, role }) {
         if (data.length > 0 && !selectedThread) setSelectedThread(data[0]);
       })
       .finally(() => setLoading(false));
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // selectedThread intentionally omitted to avoid infinite loop
 
   // Fetch all users for recipient selection
   useEffect(() => {
@@ -99,7 +100,7 @@ export default function MessagesPage({ username, role }) {
 
   return (
     <>
-      <div style={{ display: 'flex', height: '70vh', background: '#f7fafc', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', height: '75vh', minWidth: 900, background: '#f7fafc', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
         {/* Left: Thread list */}
         <div style={{ width: 280, background: '#fff', borderRight: '2px solid #e2e8f0', overflowY: 'auto' }}>
           <div style={{ fontWeight: 700, fontSize: 18, color: '#2a4365', padding: '18px 16px', borderBottom: '1px solid #e2e8f0' }}>Conversations</div>
@@ -124,7 +125,7 @@ export default function MessagesPage({ username, role }) {
           )}
         </div>
         {/* Right: Message thread */}
-        <div style={{ flex: 1, background: '#f8fafc', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div style={{ flex: 1, background: '#f8fafc', display: 'flex', flexDirection: 'column', minWidth: 0, maxWidth: '100%' }}>
           {selectedThread ? (
             <>
               <div style={{ display: 'flex', alignItems: 'center', background: headerBg, padding: '10px 16px', borderBottom: '1px solid #e2e8f0' }}>

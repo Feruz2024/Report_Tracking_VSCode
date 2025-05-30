@@ -96,6 +96,10 @@ function AssignmentCalendar() {
           tileClassName={tileClassName}
           prev2Label={null}
           next2Label={null}
+          onClickDay={d => {
+            const day = d.toISOString().slice(0, 10);
+            navigate(`/assignments?date=${day}`);
+          }}
         />
         <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center', gap: 18 }}>
           <span style={{ color: 'red', fontWeight: 600 }}>■ Overdue</span>

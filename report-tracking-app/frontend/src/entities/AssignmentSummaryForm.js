@@ -54,11 +54,15 @@ function AssignmentSummaryForm({ assignment, onSubmitted }) {
   return (
     <form onSubmit={handleSubmit} style={{ border: "1px solid #ccc", padding: 8, margin: 8 }}>
       <h4>Submit Reconciliation Summary</h4>
-      {assignment.status === "REJECTED" && assignment.manager_comment && (
-        <div className="flashing-rejection">
-          🚫 REJECTION REASON: {assignment.manager_comment}
-        </div>
-      )}
+      <div style={{ minHeight: 48, marginBottom: 12 }}>
+        {assignment.status === "REJECTED" && assignment.manager_comment ? (
+          <div className="flashing-rejection">
+            🚫 REJECTION REASON: {assignment.manager_comment}
+          </div>
+        ) : (
+          <div style={{ minHeight: 40 }}></div>
+        )}
+      </div>
       <div>
         <label>Planned Spots: <input type="number" min="0" value={plannedSpots} onChange={e => setPlannedSpots(e.target.value)} required disabled={loading} /></label>
       </div>

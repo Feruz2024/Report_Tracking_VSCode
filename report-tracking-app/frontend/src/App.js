@@ -174,94 +174,86 @@ function App2() {
   // Accountant Portal
   if (role === "accountant") {
     return (
-      <div className="App">
-        <div style={{ position: "fixed", top: 0, right: 0, zIndex: 1000, background: "#fff", borderBottomLeftRadius: 12, boxShadow: "0 2px 8px rgba(44,62,80,0.07)", padding: "10px 24px", display: "flex", alignItems: "center", gap: 12, minHeight: 48 }}>
-          <span style={{ color: "#2a4365", fontWeight: 600, fontSize: 16 }}>Logged in as <strong>{username}</strong></span>
-          <button onClick={handleLogout} style={{ background: "#e53e3e", color: "#fff", border: "none", borderRadius: 6, padding: "6px 16px", fontWeight: 600, fontSize: 15, cursor: "pointer", marginLeft: 8 }}>Logout</button>
-        </div>
-        <div style={{ maxWidth: 1600, margin: '0 auto', padding: 32 }}>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-            {["dashboard", "campaign_summary"].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: 8,
-                  border: activeTab === tab ? '2px solid #3182ce' : '1px solid #cbd5e1',
-                  background: activeTab === tab ? '#ebf8ff' : '#fff',
-                  color: activeTab === tab ? '#2b6cb0' : '#2a4365',
-                  fontWeight: activeTab === tab ? 700 : 500,
-                  cursor: 'pointer',
-                  boxShadow: activeTab === tab ? '0 2px 8px rgba(49,130,206,0.08)' : 'none',
-                  outline: 'none',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {tab === "campaign_summary" ? "Campaign Details" : tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
+      <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <TopNavBar
+          username={username}
+          onLogout={handleLogout}
+          showNotifications={true}
+        >
+          {[{ label: 'Dashboard', tab: 'dashboard' }, { label: 'Campaign Details', tab: 'campaign_summary' }].map(tab => (
+            <button
+              key={tab.tab}
+              onClick={() => setActiveTab(tab.tab)}
+              style={{
+                padding: '10px 20px',
+                borderRadius: 8,
+                border: activeTab === tab.tab ? '2px solid #3182ce' : '1px solid #cbd5e1',
+                background: activeTab === tab.tab ? '#ebf8ff' : '#fff',
+                color: activeTab === tab.tab ? '#2b6cb0' : '#2a4365',
+                fontWeight: activeTab === tab.tab ? 700 : 500,
+                cursor: 'pointer',
+                boxShadow: activeTab === tab.tab ? '0 2px 8px rgba(49,130,206,0.08)' : 'none',
+                outline: 'none',
+                transition: 'all 0.15s',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </TopNavBar>
+        <div style={{ maxWidth: 1600, margin: '0 auto', padding: 32, flex: 1 }}>
           <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: 32, border: '1px solid #e3e8ee', minHeight: 400, maxWidth: 1500, margin: '0 auto', position: 'relative' }}>
             {activeTab === "dashboard" && <AccountantDashboardSummary />}
             {activeTab === "campaign_summary" && <AccountantCampaignList />}
           </div>
         </div>
-      </div>
-    );
-  }
-
-
-  // Analyst Portal
-  if (role === "analyst") {
-    return (
-      <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ position: "fixed", top: 0, right: 0, zIndex: 1000, background: "#fff", borderBottomLeftRadius: 12, boxShadow: "0 2px 8px rgba(44,62,80,0.07)", padding: "10px 24px", display: "flex", alignItems: "center", gap: 12, minHeight: 48 }}>
-          <span style={{ color: "#2a4365", fontWeight: 600, fontSize: 16 }}>Logged in as <strong>{username}</strong></span>
-          <button onClick={handleLogout} style={{ background: "#e53e3e", color: "#fff", border: "none", borderRadius: 6, padding: "6px 16px", fontWeight: 600, fontSize: 15, cursor: "pointer", marginLeft: 8 }}>Logout</button>
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24, marginTop: 64 }}>
-          {[
-            { label: 'Dashboard', path: '/dashboard' },
-            { label: 'Active Assignments', path: '/assignments' },
-            { label: 'Notifications', path: '/notifications' },
-            { label: 'Messages', path: '/messages' },
-          ].map(tab => (
-            <Link
-              key={tab.path}
-              to={tab.path}
-              style={{
-                padding: '10px 20px',
-                borderRadius: 8,
-                border: window.location.pathname === tab.path ? '2px solid #3182ce' : '1px solid #cbd5e1',
-                background: window.location.pathname === tab.path ? '#ebf8ff' : '#fff',
-                color: window.location.pathname === tab.path ? '#2b6cb0' : '#2a4365',
-                fontWeight: window.location.pathname === tab.path ? 700 : 500,
-                cursor: 'pointer',
-                boxShadow: window.location.pathname === tab.path ? '0 2px 8px rgba(49,130,206,0.08)' : 'none',
-                outline: 'none',
-                transition: 'all 0.15s',
-                textDecoration: 'none',
-              }}
-            >
-              {tab.label}
-            </Link>
-          ))}
-        </div>
-        <div style={{ flex: 1 }}>
-          <Routes>
-            <Route path="/dashboard" element={<AnalystDashboard username={username} />} />
-            <Route path="/assignments" element={<React.Suspense fallback={<div>Loading assignments...</div>}><AssignmentList analystView={true} username={username} /></React.Suspense>} />
-            <Route path="/campaign/:id" element={<CampaignDetail username={username} />} />
-            <Route path="/notifications" element={<NotificationPanel />} />
-            <Route path="/messages" element={<MessagesPage username={username} />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </div>
         <Footer />
       </div>
     );
   }
+
+
+// Analyst Portal
+if (role === "analyst") {
+  return (
+    <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <TopNavBar
+        username={username}
+        onLogout={handleLogout}
+        showNotifications={true}
+      >
+        {[{ label: 'Dashboard', tab: 'dashboard' }, { label: 'Active Assignments', tab: 'assignments' }, { label: 'Messages', tab: 'messages' }].map(tab => (
+          <button
+            key={tab.tab}
+            onClick={() => setActiveTab(tab.tab)}
+            style={{
+              padding: '10px 20px',
+              borderRadius: 8,
+              border: activeTab === tab.tab ? '2px solid #3182ce' : '1px solid #cbd5e1',
+              background: activeTab === tab.tab ? '#ebf8ff' : '#fff',
+              color: activeTab === tab.tab ? '#2b6cb0' : '#2a4365',
+              fontWeight: activeTab === tab.tab ? 700 : 500,
+              cursor: 'pointer',
+              boxShadow: activeTab === tab.tab ? '0 2px 8px rgba(49,130,206,0.08)' : 'none',
+              outline: 'none',
+              transition: 'all 0.15s',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </TopNavBar>
+      <div style={{ maxWidth: 1600, margin: '0 auto', padding: 32, flex: 1 }}>
+        <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: 32, border: '1px solid #e3e8ee', minHeight: 400, maxWidth: 1500, margin: '0 auto', position: 'relative' }}>
+          {activeTab === "dashboard" && <AnalystDashboard username={username} />}
+          {activeTab === "assignments" && <React.Suspense fallback={<div>Loading assignments...</div>}><AssignmentList analystView={true} username={username} /></React.Suspense>}
+          {activeTab === "messages" && <MessagesPage username={username} />}
+        </div>
+      </div>
+      <Footer />
+    </div>
+  );
+}
 
   // Fallback
   return (

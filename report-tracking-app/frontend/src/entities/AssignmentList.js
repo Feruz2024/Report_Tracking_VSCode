@@ -7,7 +7,7 @@ const AssignmentSummaryForm = React.lazy(() => import("./AssignmentSummaryForm")
 const API_URL = "/api/assignments/";
 const CAMPAIGNS_API_URL = "/api/campaigns/";
 const STATIONS_API_URL = "/api/stations/";
-const ANALYSTS_API_URL = "/api/analysts/"; // This might be unused if we fetch users directly
+
 
 
 function AssignmentList({ analystView = false, username = null }) {
@@ -19,6 +19,15 @@ function AssignmentList({ analystView = false, username = null }) {
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(false);
   const location = useLocation();
+  // Get ?date=YYYY-MM-DD from query params
+  const queryDate = (() => {
+    try {
+      const params = new URLSearchParams(location.search);
+      return params.get('date');
+    } catch {
+      return null;
+    }
+  })();
   const assignmentRefs = useRef({});
   // Removed filter state
 
@@ -79,19 +88,13 @@ function AssignmentList({ analystView = false, username = null }) {
 
   const handleSummarySubmitted = () => setRefresh(true); // Changed to setRefresh(true)
 
-  const getCampaignName = (id) => {
-    const c = campaigns.find((c) => c.id === id);
-    return c ? c.name : id;
-  };
+  // Removed unused getCampaignName
   const getStationName = (id) => {
     if (!id) return null;
     const s = stations.find((s) => s.id === id);
     return s ? s.name : id;
   };
-  const getAnalystName = (id) => {
-    const analyst = analysts.find((a) => a.id === id);
-    return analyst ? analyst.user : id;
-  };
+  // Removed unused getAnalystName
 
 
   // Scroll to assignment card if assignmentId is passed in location.state
@@ -113,8 +116,14 @@ function AssignmentList({ analystView = false, username = null }) {
   if (loading) return <div>Loading assignments...</div>;
 
 
-  // No frontend filtering, use assignments as-is
+  // Filter by date if ?date=YYYY-MM-DD is present
   let filteredAssignments = assignments;
+  if (queryDate) {
+    filteredAssignments = assignments.filter(a => {
+      const due = a.due_date || a.assigned_at;
+      return due && due.slice(0, 10) === queryDate;
+    });
+  }
 
   // For manager view: group assignments by analyst and sort horizontally by performance
   let analystCards = [];
