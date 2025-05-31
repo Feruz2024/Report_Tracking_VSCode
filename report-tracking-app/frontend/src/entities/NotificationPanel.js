@@ -1,11 +1,23 @@
 // src/entities/NotificationPanel.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { authFetch } from "../utils/api";
 
 export default function NotificationPanel({ onNotificationClick }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
 
   // Fetch notifications list
   const fetchNotifications = async () => {
@@ -34,7 +46,7 @@ export default function NotificationPanel({ onNotificationClick }) {
 
   return (
     <>
-      <div style={{ position: "relative", display: "inline-block" }}>
+      <div style={{ position: "relative", display: "inline-block" }} ref={dropdownRef}>
         <button
           onClick={() => setOpen(prev => !prev)}
           style={{ background: "#fff", border: "1px solid #3182ce", borderRadius: 4, padding: "6px 12px", cursor: "pointer" }}

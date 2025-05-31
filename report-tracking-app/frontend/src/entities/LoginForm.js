@@ -33,20 +33,33 @@ function LoginForm({ onLogin }) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h3>Login</h3>
-      <div>
-        <label>
-          Username: <input value={username} onChange={e => setUsername(e.target.value)} required disabled={loading} />
-        </label>
+    <form onSubmit={handleSubmit} style={{ maxWidth: 350, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <h3 style={{ textAlign: 'center', marginBottom: 24 }}>Login</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <label style={{ fontWeight: 500, marginBottom: 4 }}>Username</label>
+        <input
+          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 16 }}
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          required
+          disabled={loading}
+        />
       </div>
-      <div>
-        <label>
-          Password: <input type="password" value={password} onChange={e => setPassword(e.target.value)} required disabled={loading} />
-        </label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <label style={{ fontWeight: 500, marginBottom: 4 }}>Password</label>
+        <input
+          type="password"
+          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 16 }}
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+          disabled={loading}
+        />
       </div>
-      <button type="submit" disabled={loading}>{loading ? "Logging in..." : "Login"}</button>
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      <button type="submit" disabled={loading} style={{ marginTop: 12, padding: '10px 0', borderRadius: 8, fontSize: 16, fontWeight: 600, background: 'var(--color-primary)', color: '#fff', border: 'none' }}>
+        {loading ? "Logging in..." : "Login"}
+      </button>
+      {error && <div style={{ color: "var(--color-error)", marginTop: 8, textAlign: 'center' }}>{error}</div>}
     </form>
   );
 }

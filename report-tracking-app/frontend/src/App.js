@@ -46,8 +46,13 @@ function App2() {
 
   if (!token) {
     return (
-      <div className="App">
-        <LoginForm onLogin={handleLogin} />
+      <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', minHeight: 0 }}>
+          <div style={{ marginTop: '8vh', minWidth: 320, maxWidth: 400, width: '100%' }}>
+            <LoginForm onLogin={handleLogin} />
+          </div>
+        </div>
+        <Footer />
       </div>
     );
   }

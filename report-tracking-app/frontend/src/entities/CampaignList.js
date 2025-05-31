@@ -64,13 +64,17 @@ function CampaignList() {
           const stationNames = getStationNames(stationIds);
           const periods = getMonitoringPeriods(campaign.id);
           const campaignStart = periods.length > 0 ? periods.map(p => p.monitoring_start).sort()[0] : null;
+          // Pastel card backgrounds
+          const pastelColors = ['#fff2eb', '#eaf6ff', '#eafff3', '#f6eaff', '#fffbe6', '#eafcff'];
+          const cardBg = pastelColors[idx % pastelColors.length];
           return (
             <div
               key={campaign.id}
               style={{
-                background: '#f6d365',
-                borderRadius: 16,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
+                background: cardBg,
+                borderRadius: 'var(--radius)',
+                boxShadow: 'var(--color-shadow)',
+                border: '1px solid var(--color-border)',
                 padding: '24px 32px',
                 minWidth: 320,
                 maxWidth: 400,
@@ -105,7 +109,7 @@ function CampaignList() {
                   <b>Monitoring & Authentication Periods:</b>
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                     {periods.map((p, i) => (
-                      <li key={i} style={{ fontSize: 13, margin: '4px 0', background: '#f7fafc', borderRadius: 6, padding: 6 }}>
+                      <li key={i} style={{ fontSize: 13, margin: '4px 0', borderRadius: 6, padding: 6 }}>
                         <div><b>Monitoring:</b> {p.monitoring_start} to {p.monitoring_end}</div>
                         <div><b>Authentication:</b> {p.authentication_start} to {p.authentication_end}</div>
                       </li>
