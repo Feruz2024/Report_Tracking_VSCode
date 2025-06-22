@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.contrib.auth.models import User, Group
 
@@ -98,6 +97,9 @@ class Assignment(models.Model):
     memo = models.TextField(blank=True)
     # Comment added by manager upon approval/rejection
     manager_comment = models.TextField(blank=True, null=True)
+    analyst_report_shared = models.BooleanField(default=False)
+    authenticated_accepted = models.BooleanField(default=False)
+    station_report_shared = models.BooleanField(default=False)
 
     def clean(self):
         # Only validate if all fields are present
