@@ -192,6 +192,20 @@ class MediaAnalystProfileViewSet(viewsets.ModelViewSet):
 from .permissions import CanUpdateOwnAssignmentOrAdminManager
 
 class AssignmentViewSet(viewsets.ModelViewSet):
+
+    def update(self, request, *args, **kwargs):
+        logger.info(f"[AssignmentViewSet][update] PUT/PATCH request for assignment {kwargs.get('pk')} by user {request.user.username}")
+        logger.info(f"[AssignmentViewSet][update] Data: {request.data}")
+        response = super().update(request, *args, **kwargs)
+        logger.info(f"[AssignmentViewSet][update] Response data: {response.data}")
+        return response
+
+    def partial_update(self, request, *args, **kwargs):
+        logger.info(f"[AssignmentViewSet][partial_update] PATCH request for assignment {kwargs.get('pk')} by user {request.user.username}")
+        logger.info(f"[AssignmentViewSet][partial_update] Data: {request.data}")
+        response = super().partial_update(request, *args, **kwargs)
+        logger.info(f"[AssignmentViewSet][partial_update] Response data: {response.data}")
+        return response
     def get_object(self):
         """
         Override to ensure correct object lookup for permissions and PATCH.
@@ -242,14 +256,15 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         """
         Create multiple assignments for one analyst/campaign, each for a different station.
         Expects: {campaign, analyst, stations: [id, ...], due_date, memo}
+        At least one station is required.
         """
         campaign = request.data.get("campaign")
         analyst = request.data.get("analyst")
         stations = request.data.get("stations", [])
         due_date = request.data.get("due_date")
         memo = request.data.get("memo", "")
-        if not (campaign and analyst and stations and isinstance(stations, list)):
-            return Response({"error": "campaign, analyst, and stations[] required"}, status=400)
+        if not (campaign and analyst and stations and isinstance(stations, list) and len(stations) > 0):
+            return Response({"error": "campaign, analyst, and at least one station[] required"}, status=400)
         created = []
         errors = []
         for st_id in stations:

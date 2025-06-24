@@ -18,13 +18,22 @@ class Client(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    contract_signed_date = models.DateField(null=True, blank=True)
+    contract_start = models.DateField(null=True, blank=True)
+    contract_end = models.DateField(null=True, blank=True)
+    contract_value = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    contacts = models.JSONField(default=list, blank=True)  # List of {type, name, email, phone}
 
     def __str__(self):
         return self.name
 
 class Station(models.Model):
+
     name = models.CharField(max_length=255)
     location = models.CharField(max_length=255, blank=True)
+    frequency = models.CharField(max_length=100, blank=True)
+    type = models.CharField(max_length=20, choices=[('radio', 'Radio'), ('tv', 'TV')], blank=True)
+    contacts = models.JSONField(default=list, blank=True)  # List of {type, name, email, phone}
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
