@@ -2,26 +2,33 @@ import React, { useState } from "react";
 
 const API_URL = "/api/register/"; // Changed to /api/register/ for general user creation
 
-function UserForm({ onUserCreated }) { // Changed from AnalystForm and onAnalystCreated
+
+function UserForm({ onUserCreated }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("Analysts"); // Default to Analysts (plural)
+  const [role, setRole] = useState(""); // Default to empty (no selection)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [roleError, setRoleError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setRoleError("");
     setError("");
+    if (!role) {
+      setRoleError("Please select a user role/group.");
+      return;
+    }
+    setLoading(true);
     try {
-      const token = localStorage.getItem('token'); // Get token for authorization
+      const token = localStorage.getItem('token');
       const res = await fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Token ${token}` // Add Authorization header
+          "Authorization": `Token ${token}`
         },
-        body: JSON.stringify({ username, password, role }), // Send plural group name
+        body: JSON.stringify({ username, password, role }),
       });
       if (!res.ok) {
         const errorData = await res.json();
@@ -29,8 +36,8 @@ function UserForm({ onUserCreated }) { // Changed from AnalystForm and onAnalyst
       }
       setUsername("");
       setPassword("");
-      setRole("analyst"); // Reset role to default
-      if (onUserCreated) onUserCreated(); // Changed from onAnalystCreated
+      setRole(""); // Reset role to default (no selection)
+      if (onUserCreated) onUserCreated();
     } catch (err) {
       setError(err.message || "Error");
     } finally {
@@ -66,13 +73,16 @@ function UserForm({ onUserCreated }) { // Changed from AnalystForm and onAnalyst
       </div>
       <div>
         <label>
-          Role:{" "}
-          <select value={role} onChange={(e) => setRole(e.target.value)} disabled={loading}>
+          Role: {" "}
+          <select value={role} onChange={(e) => setRole(e.target.value)} disabled={loading} required>
+            <option value="">Select user</option>
+            <option value="Admins">Admins</option>
             <option value="Analysts">Analysts</option>
             <option value="Managers">Managers</option>
             <option value="Accountants">Accountants</option>
           </select>
         </label>
+        {roleError && <div style={{ color: "red" }}>{roleError}</div>}
       </div>
       <button type="submit" disabled={loading || !username || !password}>
         {loading ? "Adding..." : "Add User"} {/* Changed button text */}

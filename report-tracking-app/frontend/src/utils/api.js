@@ -1,3 +1,43 @@
+// Fetch station IDs already assigned for a campaign
+export async function fetchAssignedStationIds(campaignId) {
+  const response = await authFetch(`/api/assignments/assigned_stations/?campaign=${campaignId}`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch assigned stations");
+  }
+  return response.json();
+}
+// Toggle station active status
+export async function toggleStationActive(stationId, isActive) {
+  const response = await authFetch(`/api/stations/${stationId}/`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ is_active: isActive }),
+  });
+  if (!response.ok) throw new Error("Failed to update station status");
+  return response.json();
+}
+// Delete a user by ID
+export async function deleteUser(userId) {
+  const response = await authFetch(`/api/users/${userId}/`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to delete user');
+  }
+  return true;
+}
+
+// Toggle user active status
+export async function toggleUserActive(userId, isActive) {
+  const response = await authFetch(`/api/users/${userId}/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_active: isActive }),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to update user status');
+  }
+  return response.json();
+}
 // src/utils/api.js
 
 // Helper to get the auth token from localStorage

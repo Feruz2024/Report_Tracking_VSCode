@@ -1,10 +1,79 @@
+# --- CAMPAIGN EXECUTION EXPORT (BY CLIENT) ---
+from django.db.models import Q
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
+
+# --- TEST ENDPOINT ---
+@api_view(['GET'])
+def test_import_export(request):
+    return JsonResponse({'status': 'ok', 'msg': 'import_export.py loaded'})
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def export_campaign_execution(request):
+    """
+    Export campaign execution data filtered by client(s).
+    Query params:
+      - client_id: single or comma-separated list of client IDs
+      - format: csv (default) or json
+    """
+    client_ids = request.GET.get('client_id', '')
+    fmt = request.GET.get('format', 'csv')
+    if client_ids:
+        client_ids = [int(cid) for cid in client_ids.split(',') if cid.strip().isdigit()]
+        campaigns = Campaign.objects.filter(client_id__in=client_ids)
+    else:
+        campaigns = Campaign.objects.all()
+    assignments = Assignment.objects.filter(campaign__in=campaigns).select_related('campaign', 'station', 'analyst', 'analyst__user', 'campaign__client')
+    # Compose rows
+    rows = []
+    for a in assignments:
+        rows.append({
+            'Client Name': a.campaign.client.name if a.campaign and a.campaign.client else '',
+            'Campaign Name': a.campaign.name if a.campaign else '',
+            'Campaign Status': a.campaign.status if a.campaign else '',
+            'Campaign Start Date': a.campaign.created_at.strftime('%Y-%m-%d') if a.campaign and a.campaign.created_at else '',
+            'Campaign End Date': '',  # Add if you have end date field
+            'Assignment ID': a.id,
+            'Assignment Status': a.status,
+            'Planned Spots': a.planned_spots,
+            'Transmitted Spots': a.transmitted_spots,
+            'Missed Spots': a.missed_spots,
+            'Gained Spots': a.gain_spots,
+            'Station Name': a.station.name if a.station else '',
+            'Analyst Name': a.analyst.user.get_full_name() if a.analyst and a.analyst.user else '',
+            'Analyst Username': a.analyst.user.username if a.analyst and a.analyst.user else '',
+            'Assignment Start Date': a.assigned_at.strftime('%Y-%m-%d') if a.assigned_at else '',
+            'Assignment End Date': a.submitted_at.strftime('%Y-%m-%d') if a.submitted_at else '',
+        })
+    filename = export_filename('campaign_execution', fmt)
+    if fmt == 'json':
+        response = HttpResponse(json.dumps(rows, indent=2), content_type='application/json')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    else:
+        # CSV
+        output = io.StringIO()
+        fieldnames = [
+            'Client Name', 'Campaign Name', 'Campaign Status', 'Campaign Start Date', 'Campaign End Date',
+            'Assignment ID', 'Assignment Status', 'Planned Spots', 'Transmitted Spots', 'Missed Spots', 'Gained Spots',
+            'Station Name', 'Analyst Name', 'Analyst Username', 'Assignment Start Date', 'Assignment End Date'
+        ]
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+        response = HttpResponse(output.getvalue(), content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
 import csv
 import io
 import json
 from django.http import HttpResponse, JsonResponse
 from .utils import export_filename
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAdminUser
 from .models import Station, Client, Campaign, Assignment, MediaAnalystProfile
 from django.contrib.auth.models import User
 from .serializers import StationSerializer, ClientSerializer, CampaignSerializer, AssignmentSerializer

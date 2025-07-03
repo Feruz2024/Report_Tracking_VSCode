@@ -1,7 +1,9 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import { Tabs, Tab } from "@mui/material";
 import { authFetch } from "../utils/api";
 import { useLocation } from "react-router-dom";
+import CompletedAssignmentList from "./CompletedAssignmentList";
 const AssignmentManagerActions = React.lazy(() => import("./AssignmentManagerActions"));
 const AssignmentSummaryForm = React.lazy(() => import("./AssignmentSummaryForm"));
 
@@ -219,15 +221,22 @@ function AssignmentList({ analystView = false, username = null, refresh }) {
     });
   }
 
+
+  // Only show assignments that are not approved in the main list, and apply filters
+  const nonApprovedAssignments = filteredAssignments.filter(a => a.status !== "APPROVED");
+
   return (
     <div style={{
       background: 'linear-gradient(120deg, #f0f4f8 0%, #e0e7ef 100%)',
       minHeight: '100vh',
       padding: '32px 0',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
     }}>
       <div style={{
-        maxWidth: 1400,
-        minWidth: 340,
+        maxWidth: 1200,
         width: '100%',
         margin: '0 auto',
         background: '#fff',
@@ -235,324 +244,392 @@ function AssignmentList({ analystView = false, username = null, refresh }) {
         boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
         padding: 32,
         border: '1px solid #e3e8ee',
+        minHeight: 600,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
       }}>
-        <h2 style={{
-          color: '#2a4365',
-          borderBottom: '2px solid #bee3f8',
-          paddingBottom: 8,
-          marginBottom: 24,
-          fontWeight: 700,
-          letterSpacing: 1,
-        }}>{analystView ? "My Active Assignments" : "Assignments by Analyst (Performance View)"}</h2>
-        {/* Search/filter controls */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-          <select value={searchCampaign} onChange={e => setSearchCampaign(e.target.value)} style={{ minWidth: 140 }}>
-            <option value="">All Campaigns</option>
-            {(!analystView
-              ? campaigns
-              : campaigns.filter(c => assignments.some(a => a.campaign === c.id && a.analyst_user === username || a.analyst === username || a.analyst_user_full_name === username))
-            ).map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-          {!analystView && (
-            <select value={searchAnalyst} onChange={e => setSearchAnalyst(e.target.value)} style={{ minWidth: 140 }}>
-              <option value="">All Analysts</option>
-              {analysts.map(a => <option key={a.id} value={a.id}>{a.full_name || a.user}</option>)}
-            </select>
-          )}
-          <select value={searchStation} onChange={e => setSearchStation(e.target.value)} style={{ minWidth: 140 }}>
-            <option value="">All Stations</option>
-            {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          <select value={searchStatus} onChange={e => setSearchStatus(e.target.value)} style={{ minWidth: 120 }}>
-            <option value="">All Statuses</option>
-            <option value="OVERDUE">Overdue</option>
-            <option value="WIP">WIP</option>
-            <option value="ACTIVE">Active</option>
-            <option value="APPROVED">Approved</option>
-            <option value="COMPLETED">Completed</option>
-          </select>
-        </div>
-        {/* Colorful cards grouped by analyst for manager/admin view */}
-        <>
-        {!analystView ? (
-          <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: 32 }}>
-            {/* Group assignments by analyst */}
-            {(() => {
-              if (filteredAssignments.length === 0) {
-                return <div style={{ color: '#a0aec0', fontStyle: 'italic', padding: 8 }}>No assignments.</div>;
-              }
-              // Group assignments by analyst user id (from assignment.analyst_user_id), then campaign, then sort by due date desc
-              const analystMap = {};
-              filteredAssignments.forEach(a => {
-                // Use the new analyst_user_id and analyst_user_full_name fields from the backend
-                const analystId = a.analyst_user_id;
-                const analystName = a.analyst_user_full_name || a.analyst_user || a.analyst;
-                if (!analystId || !analystName) return; // skip if missing
-                if (!analystMap[analystId]) analystMap[analystId] = { name: analystName, assignments: [] };
-                analystMap[analystId].assignments.push(a);
-              });
-              // Color palette
-              const colors = [
-                '#e3f2fd', // blue
-                '#fce4ec', // pink
-                '#e8f5e9', // green
-                '#fffde7', // yellow
-                '#f3e5f5', // purple
-                '#fbe9e7', // orange
-                '#ede7f6', // indigo
-                '#e0f2f1', // teal
-                '#f0f4c3', // lime
-                '#ffe0b2', // amber
-              ];
-              const analystIds = Object.keys(analystMap);
-              return analystIds.map((analystId, idx) => {
-                const { name: analystName, assignments: group } = analystMap[analystId];
-                const color = colors[idx % colors.length];
-                // Group by campaign
-                const campaignMap = {};
-                group.forEach(a => {
-                  if (!campaignMap[a.campaign]) campaignMap[a.campaign] = [];
-                  campaignMap[a.campaign].push(a);
-                });
-                const campaignIds = Object.keys(campaignMap);
-                return (
-                  <div key={analystId} style={{
-                    flex: `1 1 auto`,
-                    minWidth: Math.max(220, analystName.length * 13),
-                    maxWidth: 420,
-                    width: 'auto',
-                    background: color,
-                    border: '2px solid #cbd5e1',
-                    borderRadius: 16,
-                    boxShadow: '0 4px 16px rgba(44,62,80,0.06)',
-                    padding: 24,
-                    marginBottom: 8,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 18,
-                    transition: 'min-width 0.2s, max-width 0.2s',
-                  }}>
-                    <div style={{ fontWeight: 700, fontSize: 20, color: '#2b6cb0', marginBottom: 8, letterSpacing: 1 }}>{analystName}</div>
-                    {campaignIds.map((cid, cidx) => {
-                      const campaignAssignments = campaignMap[cid];
-                      const campaign = campaigns.find(c => c.id === Number(cid));
-                      // Sort by due date descending
-                      campaignAssignments.sort((a, b) => {
-                        const ad = new Date(a.due_date || a.expiry || a.assigned_at);
-                        const bd = new Date(b.due_date || b.expiry || b.assigned_at);
-                        return bd - ad;
-                      });
-                      return (
-                        <div key={cid} style={{ marginBottom: 8 }}>
-                          <div style={{ fontWeight: 600, fontSize: 16, color: '#22577a', marginBottom: 6 }}>{campaign ? campaign.name : `Campaign ${cid}`}</div>
-                          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                            {campaignAssignments.map((assignment) => {
-                              const due = assignment.due_date || assignment.expiry || assignment.assigned_at;
-                              // Only allow edit if due date is not in the past
-                              const now = new Date();
-                              const dueDate = due ? new Date(due) : null;
-                              const canEdit = !dueDate || dueDate >= now;
-                              return (
-                                <li
-                                  key={assignment.id}
-                                  ref={el => assignmentRefs.current[assignment.id] = el}
-                                  style={{
-                                    background: '#fff',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: 8,
-                                    padding: 12,
-                                    marginBottom: 10,
-                                    boxShadow: '0 1px 4px rgba(44,62,80,0.03)',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: 4,
-                                    height: 'auto',
-                                    minHeight: 0,
-                                    wordBreak: 'break-word',
-                                    position: 'relative'
-                                  }}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <div style={{ fontWeight: 600, color: '#2b6cb0', fontSize: 15 }}>
-                                      {assignment.station && <span style={{ color: '#718096' }}>Station: {getStationName(assignment.station)}</span>}
-                                    </div>
-                                    {/* Hide Edit button after approval */}
-                                    {assignment.status !== 'APPROVED' && (
-                                      <button
-                                        style={{ fontSize: 12, marginLeft: 8, zIndex: 2, opacity: canEdit ? 1 : 0.5, cursor: canEdit ? 'pointer' : 'not-allowed' }}
-                                        onClick={() => {
-                                          if (canEdit) {
-                                            window.open(`/edit-assignment/${assignment.id}`, 'EditAssignment', 'width=700,height=800');
-                                          }
-                                        }}
-                                        disabled={!canEdit}
-                                        title={assignment.station ? (canEdit ? '' : 'Cannot edit past-due assignment') : 'No station assigned'}
-                                      >
-                                        Edit
-                                      </button>
-                                    )}
-                                  </div>
-                                  <div style={{ fontSize: 13, color: '#4a5568' }}>Status: <b>{assignment.status}</b></div>
-                                  <div style={{ fontSize: 13, color: '#718096' }}>Due: {due ? new Date(due).toLocaleDateString() : 'N/A'}</div>
-                                  <div style={{ fontSize: 14, color: '#222', marginTop: 8 }}>
-                                    <div><b>Scheduled (Planned):</b> {assignment.planned_spots ?? 'N/A'}</div>
-                                    <div><b>Transmitted:</b> {assignment.transmitted_spots ?? 'N/A'}</div>
-                                    <div><b>Missed:</b> {assignment.missed_spots ?? 'N/A'}</div>
-                                    <div><b>Gained:</b> {assignment.gain_spots ?? 'N/A'}</div>
-                                  </div>
-                                  {/* Manager actions only for non-analyst view */}
-                                  {assignment.status === "SUBMITTED" && (
-                                    <div style={{ marginTop: 4 }}>
-                                      <React.Suspense fallback={<div>Loading manager actions...</div>}>
-                                        <AssignmentManagerActions assignment={assignment} onAction={() => setRefreshState(v => !v)} />
-                                      </React.Suspense>
-                                    </div>
-                                  )}
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              });
-            })()}
-          </div>
-        ) : null}
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
+          <Tab label="Active Assignments" />
+          <Tab label="Approved Assignments" />
+        </Tabs>
+        {tab === 0 && (
+          <div>
+            <h2 style={{
+              color: '#2a4365',
+              borderBottom: '2px solid #bee3f8',
+              paddingBottom: 8,
+              marginBottom: 24,
+              fontWeight: 700,
+              letterSpacing: 1,
+            }}>{analystView ? "My Active Assignments" : "Assignments by Analyst (Performance View)"}</h2>
+            {/* Search/filter controls */}
+            <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+              <select value={searchCampaign} onChange={e => setSearchCampaign(e.target.value)} style={{ minWidth: 140 }}>
+                <option value="">All Campaigns</option>
+                {(!analystView
+                  ? campaigns.filter(c => c.status !== 'COMPLETED')
+                  : campaigns.filter(c => c.status !== 'COMPLETED').filter(c => assignments.some(a => a.campaign === c.id && a.analyst_user === username || a.analyst === username || a.analyst_user_full_name === username))
+                ).map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              {!analystView && (
+                <select value={searchAnalyst} onChange={e => setSearchAnalyst(e.target.value)} style={{ minWidth: 140 }}>
+                  <option value="">All Analysts</option>
+                  {analysts.map(a => <option key={a.id} value={a.id}>{a.full_name || a.user}</option>)}
+                </select>
+              )}
+              <select value={searchStation} onChange={e => setSearchStation(e.target.value)} style={{ minWidth: 140 }}>
+                <option value="">All Stations</option>
+                {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              <select value={searchStatus} onChange={e => setSearchStatus(e.target.value)} style={{ minWidth: 120 }}>
+                <option value="">All Statuses</option>
+                <option value="OVERDUE">Overdue</option>
+                <option value="WIP">WIP</option>
+                <option value="ACTIVE">Active</option>
+                <option value="APPROVED">Approved</option>
+                <option value="COMPLETED">Completed</option>
+              </select>
+              <button
+                style={{ minWidth: 80, background: '#e2e8f0', border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' }}
+                onClick={() => {
+                  setSearchCampaign("");
+                  setSearchAnalyst("");
+                  setSearchStation("");
+                  setSearchStatus("");
+                }}
+              >Reset</button>
+            </div>
+            {/* Colorful cards grouped by analyst for manager/admin view */}
+            <>
+            {!analystView ? (
+              <div style={{ width: '100%', display: 'flex', flexWrap: 'wrap', gap: 32 }}>
+                {/* Group assignments by analyst */}
+                {(() => {
+                  if (nonApprovedAssignments.length === 0) {
+                    return <div style={{ color: '#a0aec0', fontStyle: 'italic', padding: 8 }}>No assignments.</div>;
+                  }
+                  // Group assignments by analyst user id (from assignment.analyst_user_id), then campaign, then sort by due date desc
+                  const analystMap = {};
+                  nonApprovedAssignments.forEach(a => {
+                    // Use the new analyst_user_id and analyst_user_full_name fields from the backend
+                    const analystId = a.analyst_user_id;
+                    const analystName = a.analyst_user_full_name || a.analyst_user || a.analyst;
+                    if (!analystId || !analystName) return; // skip if missing
+                    if (!analystMap[analystId]) analystMap[analystId] = { name: analystName, assignments: [] };
+                    analystMap[analystId].assignments.push(a);
+                  });
+                  // Color palette
+                  const colors = [
+                    '#e3f2fd', // blue
+                    '#fce4ec', // pink
+                    '#e8f5e9', // green
+                    '#fffde7', // yellow
+                    '#f3e5f5', // purple
+                    '#fbe9e7', // orange
+                    '#ede7f6', // indigo
+                    '#e0f2f1', // teal
+                    '#f0f4c3', // lime
+                    '#ffe0b2', // amber
+                  ];
+                  const analystIds = Object.keys(analystMap);
+                  return analystIds.map((analystId, idx) => {
+                    const { name: analystName, assignments: group } = analystMap[analystId];
+                    const color = colors[idx % colors.length];
+                    // Group by campaign
+                    const campaignMap = {};
+                    group.forEach(a => {
+                      if (!campaignMap[a.campaign]) campaignMap[a.campaign] = [];
+                      campaignMap[a.campaign].push(a);
+                    });
+                    const campaignIds = Object.keys(campaignMap);
+                    return (
+                      <div key={analystId} style={{
+                        flex: '0 0 320px',
+                        width: 320,
+                        minWidth: 320,
+                        maxWidth: 320,
+                        background: color,
+                        border: '2px solid #cbd5e1',
+                        borderRadius: 16,
+                        boxShadow: '0 4px 16px rgba(44,62,80,0.06)',
+                        padding: 24,
+                        marginBottom: 8,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 18,
+                        transition: 'none',
+                      }}>
+                        <div style={{ fontWeight: 700, fontSize: 20, color: '#2b6cb0', marginBottom: 8, letterSpacing: 1 }}>{analystName}</div>
+                        {campaignIds.map((cid, cidx) => {
+                          const campaignAssignments = campaignMap[cid];
+                          const campaign = campaigns.find(c => c.id === Number(cid));
+                          // Sort by due date descending
+                          campaignAssignments.sort((a, b) => {
+                            const ad = new Date(a.due_date || a.expiry || a.assigned_at);
+                            const bd = new Date(b.due_date || b.expiry || b.assigned_at);
+                            return bd - ad;
+                          });
+                          return (
+                            <div key={cid} style={{ marginBottom: 8 }}>
+                              <div style={{ fontWeight: 600, fontSize: 16, color: '#22577a', marginBottom: 6 }}>{campaign ? campaign.name : `Campaign ${cid}`}</div>
+                              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                                {campaignAssignments.map((assignment) => {
+                                  const due = assignment.due_date || assignment.expiry || assignment.assigned_at;
+                                  // Only allow edit if due date is not in the past
+                                  const now = new Date();
+                                  const dueDate = due ? new Date(due) : null;
+                                  const canEdit = !dueDate || dueDate >= now;
+                                  return (
+                                    <li
+                                      key={assignment.id}
+                                      ref={el => assignmentRefs.current[assignment.id] = el}
+                                      style={{
+                                        background: '#fff',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: 8,
+                                        padding: 12,
+                                        marginBottom: 10,
+                                        boxShadow: '0 1px 4px rgba(44,62,80,0.03)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: 4,
+                                        height: 'auto',
+                                        minHeight: 0,
+                                        wordBreak: 'break-word',
+                                        position: 'relative'
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <div style={{ fontWeight: 600, color: '#2b6cb0', fontSize: 15 }}>
+                                          {assignment.station && <span style={{ color: '#718096' }}>Station: {getStationName(assignment.station)}</span>}
+                                        </div>
+                                        {/* Hide Edit button after approval */}
+                                        {assignment.status !== 'APPROVED' && (
+                                          <button
+                                            style={{ fontSize: 12, marginLeft: 8, zIndex: 2, opacity: canEdit ? 1 : 0.5, cursor: canEdit ? 'pointer' : 'not-allowed' }}
+                                            onClick={() => {
+                                              if (canEdit) {
+                                                window.open(`/edit-assignment/${assignment.id}`, 'EditAssignment', 'width=700,height=800');
+                                              }
+                                            }}
+                                            disabled={!canEdit}
+                                            title={assignment.station ? (canEdit ? '' : 'Cannot edit past-due assignment') : 'No station assigned'}
+                                          >
+                                            Edit
+                                          </button>
+                                        )}
+                                      </div>
+                                      <div style={{ fontSize: 13, color: '#4a5568' }}>Status: <b>{assignment.status}</b></div>
+                                      <div style={{ fontSize: 13, color: '#718096' }}>Due: {due ? new Date(due).toLocaleDateString() : 'N/A'}</div>
+                                      <div style={{ fontSize: 14, color: '#222', marginTop: 8 }}>
+                                        <div><b>Scheduled (Planned):</b> {assignment.planned_spots ?? 'N/A'}</div>
+                                        <div><b>Transmitted:</b> {assignment.transmitted_spots ?? 'N/A'}</div>
+                                        <div><b>Missed:</b> {assignment.missed_spots ?? 'N/A'}</div>
+                                        <div><b>Gained:</b> {assignment.gain_spots ?? 'N/A'}</div>
+                                      </div>
+                                      {/* Manager actions only for non-analyst view */}
+                                      {assignment.status === "SUBMITTED" && (
+                                        <div style={{ marginTop: 4 }}>
+                                          <React.Suspense fallback={<div>Loading manager actions...</div>}>
+                                            <AssignmentManagerActions assignment={assignment} onAction={() => setRefreshState(v => !v)} />
+                                          </React.Suspense>
+                                        </div>
+                                      )}
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            ) : null}
 
-        {/* Analyst tabbed view for assignments */}
-        {analystView && (
-          <>
-            <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-              <Tab label="Open Assignments" />
-              <Tab label="Submitted Assignments" />
-            </Tabs>
-            {tab === 0 && (
-              <div style={{ width: '100vw', maxWidth: '100%', marginLeft: '-32px', marginRight: '-32px', padding: '0 32px' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'flex-start' }}>
-                  {filteredAssignments.filter(a => a.status !== 'SUBMITTED' && a.status !== 'APPROVED' && a.status !== 'REJECTED').length === 0 && (
-                    <div style={{ color: '#718096', fontStyle: 'italic', padding: 16 }}>No active assignments found.</div>
-                  )}
-                  {filteredAssignments.filter(a => a.status !== 'SUBMITTED' && a.status !== 'APPROVED' && a.status !== 'REJECTED').map((assignment, idx) => {
-                    const campaign = campaigns.find(c => c.id === Number(assignment.campaign));
-                    const colors = [
-                      '#e3f2fd', '#fce4ec', '#e8f5e9', '#fffde7', '#f3e5f5', '#fbe9e7', '#ede7f6', '#e0f2f1'
-                    ];
-                    const color = colors[idx % colors.length];
-                    return (
-                      <div key={assignment.id} style={{
-                        border: '3px solid #2b6cb0',
-                        borderRadius: 18,
-                        background: color,
-                        padding: 24,
-                        marginBottom: 8,
-                        boxShadow: '0 4px 16px rgba(44,62,80,0.06)',
-                        minWidth: 260,
-                        maxWidth: 340,
-                        flex: '1 1 300px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 8,
-                      }}>
-                        <div style={{ fontWeight: 700, fontSize: 18, color: '#2b6cb0', marginBottom: 8, letterSpacing: 1 }}>
-                          {campaign ? campaign.name : `Campaign ${assignment.campaign}`}
-                        </div>
-                        <div style={{ fontSize: 17, fontWeight: 600, color: '#2b6cb0' }}>
-                          {assignment.station && (
-                            <>
-                              <span style={{ color: '#718096' }}>Station: </span>
-                              <span style={{ color: '#4a5568' }}>{getStationName(assignment.station)}</span>
-                            </>
-                          )}
-                        </div>
-                        <div style={{ color: '#4a5568', fontSize: 15 }}>
-                          <span style={{ color: '#718096' }}>Assigned: {assignment.assigned_at?.slice(0, 10)}</span>
-                        </div>
-                        {analystView && assignment.status === "WIP" ? (
-                          <div style={{ marginTop: 8 }}>
-                            <React.Suspense fallback={<div>Loading summary form...</div>}>
-                              <AssignmentSummaryForm assignment={assignment} onSubmitted={handleSummarySubmitted} />
-                            </React.Suspense>
+            {/* Analyst tabbed view for assignments */}
+            {analystView && (
+              <>
+                <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
+                  <Tab label="Open Assignments" />
+                  <Tab label="Submitted Assignments" />
+                </Tabs>
+                {tab === 0 && (
+                  <div style={{ width: '100vw', maxWidth: '100%', marginLeft: '-32px', marginRight: '-32px', padding: '0 32px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'flex-start' }}>
+                      {filteredAssignments.filter(a => a.status !== 'SUBMITTED' && a.status !== 'APPROVED' && a.status !== 'REJECTED').length === 0 && (
+                        <div style={{ color: '#718096', fontStyle: 'italic', padding: 16 }}>No active assignments found.</div>
+                      )}
+                      {filteredAssignments.filter(a => a.status !== 'SUBMITTED' && a.status !== 'APPROVED' && a.status !== 'REJECTED').map((assignment, idx) => {
+                        const campaign = campaigns.find(c => c.id === Number(assignment.campaign));
+                        const colors = [
+                          '#e3f2fd', '#fce4ec', '#e8f5e9', '#fffde7', '#f3e5f5', '#fbe9e7', '#ede7f6', '#e0f2f1'
+                        ];
+                        const color = colors[idx % colors.length];
+                        return (
+                          <div key={assignment.id} style={{
+                            border: '3px solid #2b6cb0',
+                            borderRadius: 18,
+                            background: color,
+                            padding: 24,
+                            marginBottom: 8,
+                            boxShadow: '0 4px 16px rgba(44,62,80,0.06)',
+                            minWidth: 260,
+                            maxWidth: 340,
+                            flex: '1 1 300px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 8,
+                          }}>
+                            <div style={{ fontWeight: 700, fontSize: 18, color: '#2b6cb0', marginBottom: 8, letterSpacing: 1 }}>
+                              {campaign ? campaign.name : `Campaign ${assignment.campaign}`}
+                            </div>
+                            <div style={{ fontSize: 17, fontWeight: 600, color: '#2b6cb0' }}>
+                              {assignment.station && (
+                                <>
+                                  <span style={{ color: '#718096' }}>Station: </span>
+                                  <span style={{ color: '#4a5568' }}>{getStationName(assignment.station)}</span>
+                                </>
+                              )}
+                            </div>
+                            <div style={{ color: '#4a5568', fontSize: 15 }}>
+                              <span style={{ color: '#718096' }}>Assigned: {assignment.assigned_at?.slice(0, 10)}</span>
+                            </div>
+                            {analystView && assignment.status === "WIP" ? (
+                              <div style={{ marginTop: 8 }}>
+                                <React.Suspense fallback={<div>Loading summary form...</div>}>
+                                  <AssignmentSummaryForm assignment={assignment} onSubmitted={handleSummarySubmitted} />
+                                </React.Suspense>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: 14, color: '#222', marginTop: 8 }}>
+                                <div><b>Scheduled (Planned):</b> {assignment.planned_spots ?? 'N/A'}</div>
+                                <div><b>Transmitted:</b> {assignment.transmitted_spots ?? 'N/A'}</div>
+                                <div><b>Missed:</b> {assignment.missed_spots ?? 'N/A'}</div>
+                                <div><b>Gained:</b> {assignment.gain_spots ?? 'N/A'}</div>
+                              </div>
+                            )}
                           </div>
-                        ) : (
-                          <div style={{ fontSize: 14, color: '#222', marginTop: 8 }}>
-                            <div><b>Scheduled (Planned):</b> {assignment.planned_spots ?? 'N/A'}</div>
-                            <div><b>Transmitted:</b> {assignment.transmitted_spots ?? 'N/A'}</div>
-                            <div><b>Missed:</b> {assignment.missed_spots ?? 'N/A'}</div>
-                            <div><b>Gained:</b> {assignment.gain_spots ?? 'N/A'}</div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {tab === 1 && (
+                  <div style={{ width: '100vw', maxWidth: '100%', marginLeft: '-32px', marginRight: '-32px', padding: '0 32px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'flex-start' }}>
+                      {filteredAssignments.filter(a => a.status === 'SUBMITTED').length === 0 && (
+                        <div style={{ color: '#718096', fontStyle: 'italic', padding: 16 }}>No submitted assignments found.</div>
+                      )}
+                      {filteredAssignments.filter(a => a.status === 'SUBMITTED' || a.status === 'APPROVED' || a.status === 'REJECTED').map((assignment, idx) => {
+                        const campaign = campaigns.find(c => c.id === Number(assignment.campaign));
+                        const analyst = analysts.find(an => an.id === assignment.analyst);
+                        const colors = [
+                          '#e3f2fd', '#fce4ec', '#e8f5e9', '#fffde7', '#f3e5f5', '#fbe9e7', '#ede7f6', '#e0f2f1'
+                        ];
+                        const color = colors[idx % colors.length];
+                        let statusLabel = null;
+                        if (assignment.status === 'APPROVED') {
+                          statusLabel = <div style={{ color: 'green', fontWeight: 700, marginTop: 8, fontSize: 16 }}>APPROVED!</div>;
+                        } else if (assignment.status === 'REJECTED') {
+                          statusLabel = <div style={{ color: 'red', fontWeight: 700, marginTop: 8, fontSize: 16 }}>Rejected!{assignment.manager_comment && <span style={{ color: '#b22222', fontWeight: 400, marginLeft: 8 }}><br/>Reason: {assignment.manager_comment}</span>}</div>;
+                        } else {
+                          statusLabel = <div style={{ color: 'green', fontWeight: 500, marginTop: 8 }}>Summary submitted</div>;
+                        }
+                        return (
+                          <div key={assignment.id} style={{
+                            border: '3px solid #2b6cb0',
+                            borderRadius: 18,
+                            background: color,
+                            padding: 24,
+                            marginBottom: 8,
+                            boxShadow: '0 4px 16px rgba(44,62,80,0.06)',
+                            minWidth: 260,
+                            maxWidth: 340,
+                            flex: '1 1 300px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 8,
+                            opacity: 0.7
+                          }}>
+                            <div style={{ fontWeight: 700, fontSize: 18, color: '#2b6cb0', marginBottom: 8, letterSpacing: 1 }}>{analyst ? analyst.full_name : assignment.analyst_user_full_name || assignment.analyst_user || assignment.analyst}</div>
+                            <div style={{ fontWeight: 600, fontSize: 16, color: '#22577a', marginBottom: 6 }}>{campaign ? campaign.name : `Campaign ${assignment.campaign}`}</div>
+                            <div style={{ fontSize: 15, color: '#2b6cb0' }}>{assignment.station && `Station: ${getStationName(assignment.station)}`}</div>
+                            <div style={{ color: '#4a5568', fontSize: 15 }}>Status: <b>{assignment.status}</b></div>
+                            <div style={{ fontSize: 14, color: '#222', marginTop: 8 }}>
+                              <div><b>Scheduled (Planned):</b> {assignment.planned_spots ?? 'N/A'}</div>
+                              <div><b>Transmitted:</b> {assignment.transmitted_spots ?? 'N/A'}</div>
+                              <div><b>Missed:</b> {assignment.missed_spots ?? 'N/A'}</div>
+                              <div><b>Gained:</b> {assignment.gain_spots ?? 'N/A'}</div>
+                            </div>
+                            <div style={{ color: '#4a5568', fontSize: 15 }}>Due Date: {assignment.due_date ? assignment.due_date.slice(0, 10) : 'N/A'}</div>
+                            {assignment.status === 'REJECTED' && (
+                              <div style={{ color: 'red', fontWeight: 700, marginTop: 8 }}>Report Rejected! Waiting for an update!</div>
+                            )}
+                            {statusLabel}
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
-            {tab === 1 && (
-              <div style={{ width: '100vw', maxWidth: '100%', marginLeft: '-32px', marginRight: '-32px', padding: '0 32px' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 32, justifyContent: 'flex-start' }}>
-                  {filteredAssignments.filter(a => a.status === 'SUBMITTED').length === 0 && (
-                    <div style={{ color: '#718096', fontStyle: 'italic', padding: 16 }}>No submitted assignments found.</div>
-                  )}
-                  {filteredAssignments.filter(a => a.status === 'SUBMITTED' || a.status === 'APPROVED' || a.status === 'REJECTED').map((assignment, idx) => {
-                    const campaign = campaigns.find(c => c.id === Number(assignment.campaign));
-                    const analyst = analysts.find(an => an.id === assignment.analyst);
-                    const colors = [
-                      '#e3f2fd', '#fce4ec', '#e8f5e9', '#fffde7', '#f3e5f5', '#fbe9e7', '#ede7f6', '#e0f2f1'
-                    ];
-                    const color = colors[idx % colors.length];
-                    let statusLabel = null;
-                    if (assignment.status === 'APPROVED') {
-                      statusLabel = <div style={{ color: 'green', fontWeight: 700, marginTop: 8, fontSize: 16 }}>APPROVED!</div>;
-                    } else if (assignment.status === 'REJECTED') {
-                      statusLabel = <div style={{ color: 'red', fontWeight: 700, marginTop: 8, fontSize: 16 }}>Rejected!{assignment.manager_comment && <span style={{ color: '#b22222', fontWeight: 400, marginLeft: 8 }}><br/>Reason: {assignment.manager_comment}</span>}</div>;
-                    } else {
-                      statusLabel = <div style={{ color: 'green', fontWeight: 500, marginTop: 8 }}>Summary submitted</div>;
-                    }
-                    return (
-                      <div key={assignment.id} style={{
-                        border: '3px solid #2b6cb0',
-                        borderRadius: 18,
-                        background: color,
-                        padding: 24,
-                        marginBottom: 8,
-                        boxShadow: '0 4px 16px rgba(44,62,80,0.06)',
-                        minWidth: 260,
-                        maxWidth: 340,
-                        flex: '1 1 300px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 8,
-                        opacity: 0.7
-                      }}>
-                        <div style={{ fontWeight: 700, fontSize: 18, color: '#2b6cb0', marginBottom: 8, letterSpacing: 1 }}>{analyst ? analyst.full_name : assignment.analyst_user_full_name || assignment.analyst_user || assignment.analyst}</div>
-                        <div style={{ fontWeight: 600, fontSize: 16, color: '#22577a', marginBottom: 6 }}>{campaign ? campaign.name : `Campaign ${assignment.campaign}`}</div>
-                        <div style={{ fontSize: 15, color: '#2b6cb0' }}>{assignment.station && `Station: ${getStationName(assignment.station)}`}</div>
-                        <div style={{ color: '#4a5568', fontSize: 15 }}>Status: <b>{assignment.status}</b></div>
-                        <div style={{ fontSize: 14, color: '#222', marginTop: 8 }}>
-                          <div><b>Scheduled (Planned):</b> {assignment.planned_spots ?? 'N/A'}</div>
-                          <div><b>Transmitted:</b> {assignment.transmitted_spots ?? 'N/A'}</div>
-                          <div><b>Missed:</b> {assignment.missed_spots ?? 'N/A'}</div>
-                          <div><b>Gained:</b> {assignment.gain_spots ?? 'N/A'}</div>
-                        </div>
-                        <div style={{ color: '#4a5568', fontSize: 15 }}>Due Date: {assignment.due_date ? assignment.due_date.slice(0, 10) : 'N/A'}</div>
-                        {assignment.status === 'REJECTED' && (
-                          <div style={{ color: 'red', fontWeight: 700, marginTop: 8 }}>Report Rejected! Waiting for an update!</div>
-                        )}
-                        {statusLabel}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </>
+            </>
+          </div>
         )}
-        </>
+        {tab === 1 && (
+          <div>
+            <h2 style={{
+              color: '#2a4365',
+              borderBottom: '2px solid #bee3f8',
+              paddingBottom: 8,
+              marginBottom: 24,
+              fontWeight: 700,
+              letterSpacing: 1,
+            }}>Approved Assignments</h2>
+            {/* Filter bar for approved assignments */}
+            <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+              <select value={searchCampaign} onChange={e => setSearchCampaign(e.target.value)} style={{ minWidth: 140 }}>
+                <option value="">All Campaigns</option>
+                {campaigns.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <select value={searchAnalyst} onChange={e => setSearchAnalyst(e.target.value)} style={{ minWidth: 140 }}>
+                <option value="">All Analysts</option>
+                {analysts.map(a => <option key={a.id} value={a.id}>{a.full_name || a.user}</option>)}
+              </select>
+              <select value={searchStation} onChange={e => setSearchStation(e.target.value)} style={{ minWidth: 140 }}>
+                <option value="">All Stations</option>
+                {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              <button
+                style={{ minWidth: 80, background: '#e2e8f0', border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' }}
+                onClick={() => {
+                  setSearchCampaign("");
+                  setSearchAnalyst("");
+                  setSearchStation("");
+                  setSearchStatus("");
+                }}
+              >Reset</button>
+            </div>
+            <CompletedAssignmentList
+              filterCampaign={searchCampaign}
+              filterAnalyst={searchAnalyst}
+              filterStation={searchStation}
+              campaigns={campaigns}
+              analysts={analysts}
+              stations={stations}
+              refresh={refresh}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

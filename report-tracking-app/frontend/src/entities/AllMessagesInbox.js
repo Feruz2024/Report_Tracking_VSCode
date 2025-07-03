@@ -50,7 +50,8 @@ export default function AllMessagesInbox({ onMessageSelect }) {
         throw new Error(`Failed to fetch messages: ${res.status}`);
       }
       const data = await res.json();
-      setMessages(data);
+      // Sort messages by most recent first
+      setMessages(data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
     } catch (err) {
       setError(err.message);
     } finally {

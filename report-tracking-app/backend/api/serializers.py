@@ -34,7 +34,7 @@ class ClientSerializer(serializers.ModelSerializer):
 class StationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Station
-        fields = '__all__'
+        fields = '__all__'  # is_active now included
 
 class CampaignSerializer(serializers.ModelSerializer):
     stations = serializers.PrimaryKeyRelatedField(queryset=Station.objects.all(), many=True, required=False) # Made not required by default

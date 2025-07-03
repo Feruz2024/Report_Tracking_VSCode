@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { sendMessage } from "../utils/api";
 
 const API_URL = "/api/assignments/";
 
@@ -21,8 +22,25 @@ function AssignmentManagerActions({ assignment, onAction }) {
         }),
       });
       if (!res.ok) throw new Error("Failed to update status");
+      // Send message to analyst
+      if (assignment.analyst_user_id) {
+        let msg = `Your assignment for campaign '${assignment.campaign_name || assignment.campaign}' has been ${status === "APPROVED" ? "approved" : "rejected"}.`;
+        if (status === "REJECTED" && comment) msg += ` Reason: ${comment}`;
+        try {
+          await sendMessage({
+            recipient_id: assignment.analyst_user_id,
+            content: msg,
+            context_id: `assignment:${assignment.id}`
+          });
+        } catch (e) {
+          // Optionally handle message send error
+          console.error("Failed to send message to analyst", e);
+        }
+      }
       setComment("");
-      if (onAction) onAction();
+      if (onAction) {
+        setTimeout(() => onAction(), 100); // Ensure parent refreshes after backend update
+      }
     } catch (err) {
       setError(err.message || "Error");
     } finally {

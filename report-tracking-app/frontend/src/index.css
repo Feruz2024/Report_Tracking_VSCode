@@ -1,15 +1,22 @@
 /* Calendar assignment status backgrounds */
+/* Vibrant calendar assignment status backgrounds */
 .calendar-overdue.react-calendar__tile {
-  background: #ffebee !important;
-  border-radius: 8px !important;
+  background: linear-gradient(90deg, #ff5252 60%, #ffbaba 100%) !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  font-weight: 700;
 }
 .calendar-upcoming.react-calendar__tile {
-  background: #e8f5e9 !important;
-  border-radius: 8px !important;
+  background: linear-gradient(90deg, #43e97b 60%, #38f9d7 100%) !important;
+  color: #1a2a2a !important;
+  border-radius: 10px !important;
+  font-weight: 700;
 }
 .calendar-approved.react-calendar__tile {
-  background: #e3f2fd !important;
-  border-radius: 8px !important;
+  background: linear-gradient(90deg, #1976d2 60%, #64b5f6 100%) !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  font-weight: 700;
 }
 @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700;900&display=swap');
 

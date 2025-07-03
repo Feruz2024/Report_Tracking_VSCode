@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 
 const API_URL = "/api/assignments/";
 
+
 function AssignmentSummaryForm({ assignment, onSubmitted }) {
   const [plannedSpots, setPlannedSpots] = useState(assignment.planned_spots || "");
   const [missedSpots, setMissedSpots] = useState(assignment.missed_spots || "");
@@ -9,12 +10,14 @@ function AssignmentSummaryForm({ assignment, onSubmitted }) {
   const [gainSpots, setGainSpots] = useState(assignment.gain_spots || "");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(assignment.status === "SUBMITTED");
 
   useEffect(() => {
     setPlannedSpots(assignment.planned_spots || "");
     setMissedSpots(assignment.missed_spots || "");
     setTransmittedSpots(assignment.transmitted_spots || "");
     setGainSpots(assignment.gain_spots || "");
+    setSubmitted(assignment.status === "SUBMITTED");
   }, [assignment]);
 
   const handleSubmit = async (e) => {
@@ -43,6 +46,7 @@ function AssignmentSummaryForm({ assignment, onSubmitted }) {
         }),
       });
       if (!res.ok) throw new Error("Failed to submit summary");
+      setSubmitted(true);
       if (onSubmitted) onSubmitted();
     } catch (err) {
       setError(err.message || "Error");
@@ -63,20 +67,32 @@ function AssignmentSummaryForm({ assignment, onSubmitted }) {
           <div style={{ minHeight: 40 }}></div>
         )}
       </div>
-      <div>
-        <label>Planned Spots: <input type="number" min="0" value={plannedSpots} onChange={e => setPlannedSpots(e.target.value)} required disabled={loading} /></label>
-      </div>
-      <div>
-        <label>Missed Spots: <input type="number" min="0" value={missedSpots} onChange={e => setMissedSpots(e.target.value)} required disabled={loading} /></label>
-      </div>
-      <div>
-        <label>Transmitted Spots: <input type="number" min="0" value={transmittedSpots} onChange={e => setTransmittedSpots(e.target.value)} required disabled={loading} /></label>
-      </div>
-      <div>
-        <label>Gain Spots (Free): <input type="number" min="0" value={gainSpots} onChange={e => setGainSpots(e.target.value)} disabled={loading} /></label>
-      </div>
-      <button type="submit" disabled={loading}>Submit Summary</button>
-      {error && <div style={{ color: "red" }}>{error}</div>}
+      {submitted ? (
+        <div style={{ opacity: 0.8 }}>
+          <div><b>Planned Spots:</b> {plannedSpots}</div>
+          <div><b>Missed Spots:</b> {missedSpots}</div>
+          <div><b>Transmitted Spots:</b> {transmittedSpots}</div>
+          <div><b>Gain Spots (Free):</b> {gainSpots}</div>
+          <div style={{ color: 'green', marginTop: 8 }}>Summary submitted.</div>
+        </div>
+      ) : (
+        <>
+          <div>
+            <label>Planned Spots: <input type="number" min="0" value={plannedSpots} onChange={e => setPlannedSpots(e.target.value)} required disabled={loading} /></label>
+          </div>
+          <div>
+            <label>Missed Spots: <input type="number" min="0" value={missedSpots} onChange={e => setMissedSpots(e.target.value)} required disabled={loading} /></label>
+          </div>
+          <div>
+            <label>Transmitted Spots: <input type="number" min="0" value={transmittedSpots} onChange={e => setTransmittedSpots(e.target.value)} required disabled={loading} /></label>
+          </div>
+          <div>
+            <label>Gain Spots (Free): <input type="number" min="0" value={gainSpots} onChange={e => setGainSpots(e.target.value)} disabled={loading} /></label>
+          </div>
+          <button type="submit" disabled={loading}>Submit Summary</button>
+          {error && <div style={{ color: "red" }}>{error}</div>}
+        </>
+      )}
     </form>
   );
 }

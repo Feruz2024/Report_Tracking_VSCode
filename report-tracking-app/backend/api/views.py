@@ -173,8 +173,17 @@ class MonitoringPeriodViewSet(viewsets.ModelViewSet):
     serializer_class = MonitoringPeriodSerializer
 
 class MediaAnalystProfileViewSet(viewsets.ModelViewSet):
-    queryset = MediaAnalystProfile.objects.all()
+
+    queryset = MediaAnalystProfile.objects.none()  # Needed for DRF router basename auto-detection
     serializer_class = MediaAnalystProfileSerializer
+
+    def get_queryset(self):
+        # Only return MediaAnalystProfiles whose user is in the 'Analysts' group (plural)
+        try:
+            analyst_group = Group.objects.get(name='Analysts')
+            return MediaAnalystProfile.objects.filter(user__groups=analyst_group)
+        except Group.DoesNotExist:
+            return MediaAnalystProfile.objects.none()
 
     def create(self, request, *args, **kwargs):
         # Expecting {"username": ..., "password": ..."}
@@ -192,6 +201,18 @@ class MediaAnalystProfileViewSet(viewsets.ModelViewSet):
 from .permissions import CanUpdateOwnAssignmentOrAdminManager
 
 class AssignmentViewSet(viewsets.ModelViewSet):
+    @action(detail=False, methods=["get"], url_path="assigned_stations")
+    def assigned_stations(self, request):
+        """
+        Returns a list of station IDs already assigned for a given campaign.
+        Usage: /api/assignments/assigned_stations/?campaign=<campaign_id>
+        """
+        campaign_id = request.query_params.get("campaign")
+        if not campaign_id:
+            return Response({"error": "campaign parameter required"}, status=400)
+        from .models import Assignment
+        assigned = Assignment.objects.filter(campaign_id=campaign_id).exclude(station__isnull=True).values_list("station_id", flat=True)
+        return Response(list(set(assigned)))
 
     def update(self, request, *args, **kwargs):
         logger.info(f"[AssignmentViewSet][update] PUT/PATCH request for assignment {kwargs.get('pk')} by user {request.user.username}")

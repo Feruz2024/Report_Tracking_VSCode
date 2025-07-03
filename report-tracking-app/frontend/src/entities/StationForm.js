@@ -1,19 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { authFetch } from "../utils/api";
 
 const API_URL = "/api/stations/";
 
-function StationForm({ onStationCreated }) {
-  const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
-  const [frequency, setFrequency] = useState("");
-  const [type, setType] = useState("");
-  const [contacts, setContacts] = useState([
-    { type: "Management", name: "", email: "", phone: "" },
-    { type: "Technical", name: "", email: "", phone: "" }
-  ]);
+function StationForm({ onStationCreated, onStationUpdated, onClose, editMode = false, initialData = {} }) {
+  const [name, setName] = useState(initialData.name || "");
+  const [location, setLocation] = useState(initialData.location || "");
+  const [frequency, setFrequency] = useState(initialData.frequency || "");
+  const [type, setType] = useState(initialData.type || "");
+  const [contacts, setContacts] = useState(
+    initialData.contacts && Array.isArray(initialData.contacts) && initialData.contacts.length > 0
+      ? initialData.contacts
+      : [
+          { type: "Management", name: "", email: "", phone: "" },
+          { type: "Technical", name: "", email: "", phone: "" }
+        ]
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (editMode && initialData) {
+      setName(initialData.name || "");
+      setLocation(initialData.location || "");
+      setFrequency(initialData.frequency || "");
+      setType(initialData.type || "");
+      setContacts(
+        initialData.contacts && Array.isArray(initialData.contacts) && initialData.contacts.length > 0
+          ? initialData.contacts
+          : [
+              { type: "Management", name: "", email: "", phone: "" },
+              { type: "Technical", name: "", email: "", phone: "" }
+            ]
+      );
+    }
+  }, [editMode, initialData]);
 
   const handleContactChange = (idx, field, value) => {
     setContacts(contacts => contacts.map((c, i) => i === idx ? { ...c, [field]: value } : c));
@@ -24,26 +45,32 @@ function StationForm({ onStationCreated }) {
     setLoading(true);
     setError("");
     try {
-      const res = await authFetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          name,
-          location,
-          frequency,
-          type,
-          contacts,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to create station");
-      setName("");
-      setLocation("");
-      setFrequency("");
-      setType("");
-      setContacts([
-        { type: "Management", name: "", email: "", phone: "" },
-        { type: "Technical", name: "", email: "", phone: "" }
-      ]);
-      if (onStationCreated) onStationCreated();
+      if (editMode && initialData.id) {
+        // PATCH update
+        const res = await authFetch(`${API_URL}${initialData.id}/`, {
+          method: "PATCH",
+          body: JSON.stringify({ name, location, frequency, type, contacts }),
+        });
+        if (!res.ok) throw new Error("Failed to update station");
+        if (onStationUpdated) onStationUpdated();
+      } else {
+        // POST create
+        const res = await authFetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({ name, location, frequency, type, contacts }),
+        });
+        if (!res.ok) throw new Error("Failed to create station");
+        setName("");
+        setLocation("");
+        setFrequency("");
+        setType("");
+        setContacts([
+          { type: "Management", name: "", email: "", phone: "" },
+          { type: "Technical", name: "", email: "", phone: "" }
+        ]);
+        if (onStationCreated) onStationCreated();
+      }
+      if (onClose) onClose();
     } catch (err) {
       setError(err.message || "Error");
     } finally {
@@ -54,7 +81,7 @@ function StationForm({ onStationCreated }) {
   return (
     <form onSubmit={handleSubmit}>
       <div style={{ border: '1px solid #ccc', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
-        <h3>Add Station</h3>
+        <h3>{editMode ? "Edit Station" : "Add Station"}</h3>
         <div>
           <label>
             Name:{" "}
@@ -115,8 +142,11 @@ function StationForm({ onStationCreated }) {
         ))}
       </div>
       <button type="submit" disabled={loading || !name}>
-        {loading ? "Adding..." : "Add Station"}
+        {loading ? (editMode ? "Saving..." : "Adding...") : (editMode ? "Save Changes" : "Add Station")}
       </button>
+      {onClose && (
+        <button type="button" onClick={onClose} style={{ marginLeft: 8 }} disabled={loading}>Cancel</button>
+      )}
       {error && <div style={{ color: "red" }}>{error}</div>}
     </form>
   );

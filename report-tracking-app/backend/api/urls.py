@@ -31,7 +31,9 @@ from django.urls import path
 from .import_export import (
     export_settings, import_settings,
     export_entities, import_entities,
-    export_analysis, import_analysis
+    export_analysis, import_analysis,
+    export_campaign_execution,
+    test_import_export
 )
 
 urlpatterns = [
@@ -44,5 +46,10 @@ urlpatterns = [
     path('import_export/entities/import/', import_entities, name='import_entities'),
     path('import_export/analysis/export/', export_analysis, name='export_analysis'),
     path('import_export/analysis/import/', import_analysis, name='import_analysis'),
+    path('export/campaign-execution/', export_campaign_execution, name='export_campaign_execution'),
+    path('export/campaign-execution', export_campaign_execution),
+    path('import_export/test/', test_import_export, name='test_import_export'),
 ]
+
+# Ensure router.urls is added last so custom endpoints are not shadowed
 urlpatterns += router.urls

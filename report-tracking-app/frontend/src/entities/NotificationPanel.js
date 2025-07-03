@@ -84,8 +84,18 @@ export default function NotificationPanel({ onNotificationClick }) {
                 {notifications.map(n => (
                   <li
                     key={n.id}
-                    onClick={onNotificationClick}
-                    style={{ padding: "8px 12px", borderBottom: "1px solid #e2e8f0", background: n.read ? "#fff" : "#e3f2fd", cursor: onNotificationClick ? "pointer" : "default", position: "relative" }}
+                    onClick={() => onNotificationClick && onNotificationClick(n)}
+                    style={{
+                      padding: "8px 12px",
+                      borderBottom: "1px solid #e2e8f0",
+                      background: n.read ? "#fff" : "#e3f2fd",
+                      cursor: onNotificationClick ? "pointer" : "default",
+                      position: "relative",
+                      transition: 'background 0.2s',
+                    }}
+                    onMouseDown={e => e.currentTarget.style.background = '#bee3f8'}
+                    onMouseUp={e => e.currentTarget.style.background = n.read ? '#fff' : '#e3f2fd'}
+                    onMouseLeave={e => e.currentTarget.style.background = n.read ? '#fff' : '#e3f2fd'}
                   >
                     <div style={{ fontWeight: n.read ? 400 : 700, fontSize: 14, color: "#2a4365" }}>{n.message}</div>
                     <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{new Date(n.timestamp).toLocaleString()}</div>

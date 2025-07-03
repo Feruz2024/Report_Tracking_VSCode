@@ -1,22 +1,34 @@
 import React, { useRef, useState, useEffect } from "react";
+import { MessageProvider } from "./entities/MessageContext";
+import { EntityProvider } from "./entities/EntityContext";
 import NotificationPanel from "./entities/NotificationPanel";
 import TopNavBar from "./entities/TopNavBar";
+import MessageBadge from "./entities/MessageBadge";
 import Footer from "./entities/Footer";
 import MessagePanel from "./entities/MessagePanel";
 import MessagesPage from "./entities/MessagesPage";
 import LoginForm from "./entities/LoginForm";
 import CampaignForm from "./entities/CampaignForm";
 import CampaignList from "./entities/CampaignList";
+import CompletedCampaignList from "./entities/CompletedCampaignList";
 import EntitiesTab from "./entities/EntitiesTab";
 import AssignmentForm from "./entities/AssignmentForm";
 import AssignmentList from "./entities/AssignmentList";
 import DashboardSummary from "./entities/DashboardSummary";
 import { Routes, Route, Link, Navigate } from "react-router-dom";
+import EditClientPage from "./EditClientPage";
+import EditCampaignPage from "./EditCampaignPage";
+import EditStationPage from "./EditStationPage";
+import EditUserPage from "./EditUserPage";
+import EditAnalystPage from "./EditAnalystPage";
+import EditAssignmentPage from "./EditAssignmentPage";
 import AnalystDashboard from "./entities/AnalystDashboard";
 import CampaignDetail from "./entities/CampaignDetail";
 import AccountantCampaignList from "./entities/AccountantCampaignList";
 import AccountantDashboardSummary from "./entities/AccountantDashboardSummary";
 import InboxPage from "./entities/InboxPage";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
 
 function App2() {
   const [token, setToken] = useState(() => localStorage.getItem("token") || "");
@@ -44,6 +56,33 @@ function App2() {
     setMessagePanelContext({ contextId: "general", recipientId: null });
   };
 
+
+  // Dedicated edit popup route: only render EditClientPage, not the full app/tabs
+  return (
+    <MessageProvider>
+      <EntityProvider>
+        <Routes>
+          <Route path="/edit-client/:id" element={<EditClientPage />} />
+          <Route path="/edit-campaign/:id" element={<EditCampaignPage />} />
+          <Route path="/edit-station/:id" element={<EditStationPage />} />
+          <Route path="/edit-user/:id" element={<EditUserPage />} />
+          <Route path="/edit-analyst/:id" element={<EditAnalystPage />} />
+          <Route path="/edit-assignment/:id" element={<EditAssignmentPage />} />
+          <Route path="/*" element={<MainApp token={token} handleLogin={handleLogin} handleLogout={handleLogout} />} />
+        </Routes>
+      </EntityProvider>
+    </MessageProvider>
+  );
+}
+
+function MainApp({ token, handleLogin, handleLogout }) {
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("activeTab") || "dashboard");
+  const [messagePanelContext, setMessagePanelContext] = useState({ contextId: "general", recipientId: null });
+
+  useEffect(() => {
+    localStorage.setItem("activeTab", activeTab);
+  }, [activeTab]);
+
   if (!token) {
     return (
       <div className="App" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -69,7 +108,7 @@ function App2() {
           onLogout={handleLogout}
           showNotifications={true}
         >
-          {["dashboard", "entities", "campaigns", "assignments", "messages"].map(tab => (
+          {['dashboard', 'entities', 'campaigns', 'assignments', 'messages'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -84,26 +123,30 @@ function App2() {
                 boxShadow: activeTab === tab ? '0 2px 8px rgba(49,130,206,0.08)' : 'none',
                 outline: 'none',
                 transition: 'all 0.15s',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
               }}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'messages' && <MessageBadge username={username} />}
             </button>
           ))}
         </TopNavBar>
         <div style={{ maxWidth: 1600, margin: '0 auto', padding: 32, flex: 1 }}>
           <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: 32, border: '1px solid #e3e8ee', minHeight: 400, maxWidth: 1500, margin: '0 auto', position: 'relative' }}>
-            {activeTab === "dashboard" && <DashboardSummary />}
+            {activeTab === "dashboard" && <DashboardSummary onNavigateTab={setActiveTab} />}
             {activeTab === "entities" && <EntitiesTab />}
             {activeTab === "campaigns" && (
               <div style={{ marginTop: 24, padding: 24, background: '#fff', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
                 <CampaignForm />
-                <CampaignList />
+                <CampaignTabs />
               </div>
             )}
             {activeTab === "assignments" && (
               <div style={{ marginTop: 24, padding: 24, background: '#fff', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
                 <AssignmentForm />
-                <AssignmentList />
+                <AssignmentList analystView={role === "analyst"} username={username} />
               </div>
             )}
             {activeTab === "messages" && (
@@ -150,18 +193,18 @@ function App2() {
         </TopNavBar>
         <div style={{ maxWidth: 1600, margin: '0 auto', padding: 32, flex: 1 }}>
           <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: 32, border: '1px solid #e3e8ee', minHeight: 400, maxWidth: 1500, margin: '0 auto', position: 'relative' }}>
-            {activeTab === "dashboard" && <DashboardSummary />}
+            {activeTab === "dashboard" && <DashboardSummary onNavigateTab={setActiveTab} />}
             {activeTab === "entities" && <EntitiesTab />}
             {activeTab === "campaigns" && (
               <div style={{ marginTop: 24, padding: 24, background: '#fff', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
                 <CampaignForm />
-                <CampaignList />
+                <CampaignTabs />
               </div>
             )}
             {activeTab === "assignments" && (
               <div style={{ marginTop: 24, padding: 24, background: '#fff', borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
                 <AssignmentForm />
-                <AssignmentList />
+                <AssignmentList analystView={role === "analyst"} username={username} />
               </div>
             )}
             {activeTab === "messages" && (
@@ -250,7 +293,7 @@ if (role === "analyst") {
       </TopNavBar>
       <div style={{ maxWidth: 1600, margin: '0 auto', padding: 32, flex: 1 }}>
         <div style={{ background: '#fff', borderRadius: 16, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: 32, border: '1px solid #e3e8ee', minHeight: 400, maxWidth: 1500, margin: '0 auto', position: 'relative' }}>
-          {activeTab === "dashboard" && <AnalystDashboard username={username} />}
+          {activeTab === "dashboard" && <AnalystDashboard username={username} onNavigateTab={setActiveTab} />}
           {activeTab === "assignments" && <React.Suspense fallback={<div>Loading assignments...</div>}><AssignmentList analystView={true} username={username} /></React.Suspense>}
           {activeTab === "messages" && <MessagesPage username={username} />}
         </div>
@@ -266,6 +309,22 @@ if (role === "analyst") {
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No access or unknown role.</div>
       <Footer />
     </div>
+  );
+}
+
+
+// Tabbed campaigns view for admin/manager
+function CampaignTabs() {
+  const [tab, setTab] = React.useState(0);
+  return (
+    <>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }} centered>
+        <Tab label="Active Campaigns" />
+        <Tab label="Completed Campaigns" />
+      </Tabs>
+      {tab === 0 && <CampaignList />}
+      {tab === 1 && <CompletedCampaignList />}
+    </>
   );
 }
 

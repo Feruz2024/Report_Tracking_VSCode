@@ -35,6 +35,7 @@ class Station(models.Model):
     type = models.CharField(max_length=20, choices=[('radio', 'Radio'), ('tv', 'TV')], blank=True)
     contacts = models.JSONField(default=list, blank=True)  # List of {type, name, email, phone}
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
@@ -76,10 +77,35 @@ class MediaAnalystProfile(models.Model):
         return self.user.username
 
 
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save, post_save, m2m_changed
 from django.dispatch import receiver
 from django.utils import timezone
 from django.contrib.auth.models import User as AuthUser
+
+# --- User Profile Auto-Creation Signal ---
+from django.apps import apps
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """
+    Automatically create the correct profile for a user based on their group.
+    This runs after user creation and after group assignment.
+    """
+    # Get all group names for this user
+    group_names = set(instance.groups.values_list('name', flat=True))
+    # Only create if not already present
+    if 'Admins' in group_names:
+        AdminProfile = apps.get_model('api', 'AdminProfile')
+        AdminProfile.objects.get_or_create(user=instance)
+    if 'Analysts' in group_names:
+        MediaAnalystProfile = apps.get_model('api', 'MediaAnalystProfile')
+        MediaAnalystProfile.objects.get_or_create(user=instance)
+    if 'Accountants' in group_names:
+        AccountantProfile = apps.get_model('api', 'AccountantProfile')
+        AccountantProfile.objects.get_or_create(user=instance)
+    if 'Managers' in group_names:
+        ManagerProfile = apps.get_model('api', 'ManagerProfile')
+        ManagerProfile.objects.get_or_create(user=instance)
 
 class Assignment(models.Model):
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='assignments')

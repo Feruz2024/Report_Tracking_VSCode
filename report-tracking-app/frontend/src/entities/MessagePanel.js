@@ -143,12 +143,13 @@ export default function MessagePanel({ contextId, recipientId: initialRecipientI
                   border: '1px solid #e2e8f0',
                   boxShadow: 'none',
                   display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: m.sender === recipientId ? 'flex-end' : 'flex-start',
+                  flexDirection: 'row',
+                  alignItems: 'flex-start',
+                  gap: 12,
                 }}>
-                  <div style={{ fontWeight: 600, color: '#2a4365', fontSize: 14 }}>{m.sender || `User ${m.sender}`}</div>
-                  <div style={{ color: '#222', fontSize: 15, margin: '2px 0 2px 0' }}>{m.content}</div>
-                  <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{new Date(m.timestamp).toLocaleString()}</div>
+                  <div style={{ minWidth: 70, fontWeight: 600, color: '#2a4365', fontSize: 14, textAlign: 'left' }}>{m.sender || `User ${m.sender}`}</div>
+                  <div style={{ flex: 1, color: '#222', fontSize: 15, margin: '2px 0 2px 0', wordBreak: 'break-word' }}>{m.content}</div>
+                  <div style={{ fontSize: 12, color: '#888', marginTop: 2, minWidth: 90, textAlign: 'right' }}>{new Date(m.timestamp).toLocaleString()}</div>
                 </li>
               ))}
               <div ref={messagesEndRef} />

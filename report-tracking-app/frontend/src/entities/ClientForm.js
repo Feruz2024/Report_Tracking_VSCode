@@ -1,20 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import EditConfirmDialog from "./EditConfirmDialog";
 import { authFetch } from "../utils/api";
 
 const API_URL = "/api/clients/";
 
-function ClientForm({ onClientCreated }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [businessCategory, setBusinessCategory] = useState("");
-  const [contractSignedDate, setContractSignedDate] = useState("");
-  const [contractStart, setContractStart] = useState("");
-  const [contractEnd, setContractEnd] = useState("");
-  const [contractValue, setContractValue] = useState("");
-  const [contacts, setContacts] = useState([
+function ClientForm({ onClientCreated, editMode = false, initialData = null, onClose, onClientUpdated }) {
+  const [name, setName] = useState(initialData ? initialData.name : "");
+  const [description, setDescription] = useState(initialData ? initialData.description : "");
+  const [businessCategory, setBusinessCategory] = useState(initialData ? initialData.business_category : "");
+  const [contractSignedDate, setContractSignedDate] = useState(initialData ? initialData.contract_signed_date : "");
+  const [contractStart, setContractStart] = useState(initialData ? initialData.contract_start : "");
+  const [contractEnd, setContractEnd] = useState(initialData ? initialData.contract_end : "");
+  const [contractValue, setContractValue] = useState(initialData ? initialData.contract_value : "");
+  const [contacts, setContacts] = useState(initialData && initialData.contacts ? initialData.contacts : [
     { type: "Management", name: "", email: "", phone: "" },
     { type: "Marketing", name: "", email: "", phone: "" }
   ]);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,35 +26,48 @@ function ClientForm({ onClientCreated }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setShowConfirm(true);
+  };
+
+  const handleConfirm = async () => {
+    setShowConfirm(false);
     setLoading(true);
     setError("");
     try {
-      const res = await authFetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({
-          name,
-          description,
-          business_category: businessCategory,
-          contract_signed_date: contractSignedDate,
-          contract_start: contractStart,
-          contract_end: contractEnd,
-          contract_value: contractValue,
-          contacts,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to create client");
-      setName("");
-      setDescription("");
-      setBusinessCategory("");
-      setContractSignedDate("");
-      setContractStart("");
-      setContractEnd("");
-      setContractValue("");
-      setContacts([
-        { type: "Management", name: "", email: "", phone: "" },
-        { type: "Marketing", name: "", email: "", phone: "" }
-      ]);
-      if (onClientCreated) onClientCreated();
+      let res;
+      if (editMode && initialData) {
+        res = await authFetch(`${API_URL}${initialData.id}/`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            name,
+            description,
+            business_category: businessCategory,
+            contract_signed_date: contractSignedDate,
+            contract_start: contractStart,
+            contract_end: contractEnd,
+            contract_value: contractValue,
+            contacts,
+          }),
+        });
+      } else {
+        res = await authFetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            name,
+            description,
+            business_category: businessCategory,
+            contract_signed_date: contractSignedDate,
+            contract_start: contractStart,
+            contract_end: contractEnd,
+            contract_value: contractValue,
+            contacts,
+          }),
+        });
+      }
+      if (!res.ok) throw new Error("Failed to save client");
+      if (editMode && onClientUpdated) onClientUpdated();
+      if (!editMode && onClientCreated) onClientCreated();
+      if (onClose) onClose();
     } catch (err) {
       setError(err.message || "Error");
     } finally {
@@ -61,9 +76,10 @@ function ClientForm({ onClientCreated }) {
   };
 
   return (
+    <>
     <form onSubmit={handleSubmit}>
       <div style={{ border: '1px solid #ccc', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
-        <h3>Add Client</h3>
+        <h3>{editMode ? 'Edit Client' : 'Add Client'}</h3>
         <div>
           <label>
             Name:{" "}
@@ -158,10 +174,17 @@ function ClientForm({ onClientCreated }) {
         ))}
       </div>
       <button type="submit" disabled={loading || !name}>
-        {loading ? "Adding..." : "Add Client"}
+        {loading ? (editMode ? "Saving..." : "Adding...") : (editMode ? "Save Changes" : "Add Client")}
       </button>
+      {editMode && onClose && (
+        <button type="button" onClick={onClose} disabled={loading} style={{ marginLeft: 8 }}>Cancel</button>
+      )}
       {error && <div style={{ color: "red" }}>{error}</div>}
     </form>
+    <EditConfirmDialog open={showConfirm} onClose={() => setShowConfirm(false)} onConfirm={handleConfirm}>
+      Are you sure you want to {editMode ? 'save changes to' : 'add'} this client?
+    </EditConfirmDialog>
+    </>
   );
 }
 
