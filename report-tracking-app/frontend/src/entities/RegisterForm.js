@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 
-const API_URL = "/api/register/";
+const API_URL = process.env.REACT_APP_API_URL + "/api/register/";
 
 function RegisterForm({ onRegister }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("analyst");
+  const [role, setRole] = useState("Analysts"); // Must match backend group name exactly
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -19,7 +19,8 @@ function RegisterForm({ onRegister }) {
       const res = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password, role }),
+  // Ensure role is 'Analysts' for analyst registration
+  body: JSON.stringify({ username, password, role: role === 'analyst' ? 'Analysts' : role }),
       });
       if (!res.ok) throw new Error("Registration failed");
       const data = await res.json();

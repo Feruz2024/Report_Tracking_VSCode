@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const API_URL = "/api/auth/token/";
+const API_URL = `${process.env.REACT_APP_API_URL}/api/auth/token/`;
 
 function LoginForm({ onLogin }) {
   const [username, setUsername] = useState("");

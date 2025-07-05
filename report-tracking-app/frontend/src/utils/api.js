@@ -46,6 +46,7 @@ export function getAuthToken() {
 }
 
 // Helper for authenticated fetch requests
+const API_BASE = process.env.REACT_APP_API_URL || "";
 export async function authFetch(url, options = {}) {
   const token = getAuthToken();
   const headers = {
@@ -54,7 +55,9 @@ export async function authFetch(url, options = {}) {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
-  return fetch(url, { ...options, headers, credentials: 'include' });
+  // Prepend API_BASE if url starts with /
+  const fullUrl = url.startsWith("/") ? `${API_BASE}${url}` : url;
+  return fetch(fullUrl, { ...options, headers, credentials: 'include' });
 }
 
 export async function fetchUsers() {

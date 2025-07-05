@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const API_URL = "/api/register/"; // Changed to /api/register/ for general user creation
+const API_URL = process.env.REACT_APP_API_URL + "/api/register/"; // Use backend API base URL for user creation
 
 
 function UserForm({ onUserCreated }) {
@@ -28,7 +28,8 @@ function UserForm({ onUserCreated }) {
           "Content-Type": "application/json",
           "Authorization": `Token ${token}`
         },
-        body: JSON.stringify({ username, password, role }),
+  // Ensure role is 'Analysts' for analyst registration
+  body: JSON.stringify({ username, password, role: role === 'analyst' ? 'Analysts' : role }),
       });
       if (!res.ok) {
         const errorData = await res.json();
