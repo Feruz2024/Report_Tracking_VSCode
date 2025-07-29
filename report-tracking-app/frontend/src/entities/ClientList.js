@@ -107,7 +107,7 @@ function ClientList({ refresh }) {
           <button
             style={{ position: 'absolute', top: 14, right: 16, fontSize: 13, background: '#3182ce', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', zIndex: 2 }}
             onClick={() => {
-              window.open(`/edit-client/${client.id}`, 'EditClient', 'width=500,height=700');
+              window.open(`/edit-client/${client.id}?token=${localStorage.getItem('token')}`, 'EditClient', 'width=500,height=700');
             }}
           >
             Edit

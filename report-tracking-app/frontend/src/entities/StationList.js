@@ -6,6 +6,7 @@ const API_URL = "/api/stations/";
 function StationList({ refresh }) {
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('TV'); // 'TV' or 'Radio'
 
   // Helper to ensure data is always an array
   const safeArray = (data) => (Array.isArray(data) ? data : []);
@@ -47,11 +48,39 @@ function StationList({ refresh }) {
     }
   };
 
+  // Tab UI and filtering
+  const tabStyle = (active) => ({
+    padding: '8px 24px',
+    border: 'none',
+    borderBottom: active ? '3px solid #1976d2' : '3px solid transparent',
+    background: 'none',
+    fontWeight: active ? 700 : 400,
+    fontSize: 17,
+    color: active ? '#1976d2' : '#444',
+    cursor: 'pointer',
+    outline: 'none',
+    marginRight: 16,
+    marginBottom: 8,
+    transition: 'border-bottom 0.2s, color 0.2s',
+  });
+
+  const filteredStations = stations.filter(s => (tab === 'TV' ? s.type === 'TV' : s.type === 'Radio'));
+
   return (
     <div>
+      {/* Tab selector */}
+      <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: 12 }}>
+        <button style={tabStyle(tab === 'TV')} onClick={() => setTab('TV')}>TV Stations</button>
+        <button style={tabStyle(tab === 'Radio')} onClick={() => setTab('Radio')}>Radio Stations</button>
+      </div>
       {actionError && <div style={{ color: 'red', marginBottom: 8 }}>{actionError}</div>}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, marginTop: 16, justifyContent: 'center' }}>
-        {stations.map((station) => (
+        {filteredStations.length === 0 && (
+          <div style={{ color: '#888', fontSize: 16, marginTop: 32 }}>
+            No {tab === 'TV' ? 'TV' : 'Radio'} stations found.
+          </div>
+        )}
+        {filteredStations.map((station) => (
           <div
             key={station.id}
             style={{
@@ -78,7 +107,7 @@ function StationList({ refresh }) {
             <button
               style={{ position: 'absolute', top: 12, right: 12, fontSize: 13, zIndex: 2, background: '#e2e8f0', border: 'none', borderRadius: 6, padding: '2px 10px', cursor: 'pointer' }}
               onClick={() => {
-                window.open(`/edit-station/${station.id}`, 'EditStation', 'width=600,height=700');
+                window.open(`/edit-station/${station.id}?token=${localStorage.getItem('token')}`, 'EditStation', 'width=600,height=700');
               }}
             >
               Edit
@@ -100,7 +129,7 @@ function StationList({ refresh }) {
               </button>
             )}
             <div style={{ fontWeight: 700, fontSize: 20, marginBottom: 6 }}>{station.name}</div>
-            {station.type && <div style={{ fontSize: 15 }}><b>Type:</b> {station.type === 'radio' ? 'Radio' : station.type === 'tv' ? 'TV' : station.type}</div>}
+            {station.type && <div style={{ fontSize: 15 }}><b>Type:</b> {station.type === 'Radio' ? 'Radio' : station.type === 'TV' ? 'TV' : station.type}</div>}
             {station.frequency && <div style={{ fontSize: 15 }}><b>Frequency:</b> {station.frequency}</div>}
             {station.location && <div style={{ fontSize: 15 }}><b>Location:</b> {station.location}</div>}
             {station.contacts && Array.isArray(station.contacts) && station.contacts.length > 0 && (
@@ -125,6 +154,7 @@ function StationList({ refresh }) {
               </button>
             </div>
           </div>
+
         ))}
       </div>
     </div>

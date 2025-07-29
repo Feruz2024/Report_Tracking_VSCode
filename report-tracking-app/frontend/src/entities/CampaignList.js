@@ -153,7 +153,7 @@ function CampaignList({ refresh }) {
                 <button
                   style={{ position: 'absolute', top: 8, right: 8, fontSize: 12, zIndex: 2 }}
                   onClick={() => {
-                    window.open(`/edit-campaign/${campaign.id}`, 'EditCampaign', 'width=600,height=800');
+                    window.open(`/edit-campaign/${campaign.id}?token=${localStorage.getItem('token')}`, 'EditCampaign', 'width=600,height=800');
                   }}
                 >
                   Edit

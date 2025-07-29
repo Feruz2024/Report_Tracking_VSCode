@@ -1,6 +1,7 @@
 import React from "react";
 import ImportExportPanel from "./ImportExportPanel";
 import CampaignExecutionExportPanel from "./CampaignExecutionExportPanel";
+import AnalystReportExportPanel from "./AnalystReportExportPanel";
 
 export default function DataExportTab() {
   return (
@@ -13,6 +14,9 @@ export default function DataExportTab() {
         <div style={{ flex: 1, minWidth: 350, maxWidth: 500 }}>
           <CampaignExecutionExportPanel />
         </div>
+      </div>
+      <div style={{ marginTop: 32 }}>
+        <AnalystReportExportPanel />
       </div>
     </div>
   );

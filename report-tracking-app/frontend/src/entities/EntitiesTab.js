@@ -11,6 +11,8 @@ import AnalystList from "./AnalystList";
 import UserList from "./UserList";
 import StationForm from "./StationForm";
 import StationList from "./StationList";
+import ActiveStationList from "./ActiveStationList";
+import CompletedStationList from "./CompletedStationList";
 import ImportExportPanel from "./ImportExportPanel";
 import StationMuxInfo from "./StationMuxInfo";
 import DataExportTab from "./DataExportTab";
@@ -80,9 +82,55 @@ function EntitiesTab() {
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
           <h2 style={{ textAlign: 'center', width: '100%' }}>Station Management</h2>
           {(isManager || isAdmin) && <StationForm onStationCreated={handleStationCreated} />}
-          <StationList refresh={stationListRefresh} />
+          {/* Sub-tabs for Active/Completed stations */}
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '16px 0 8px 0' }}>
+            <button
+              style={{
+                padding: '8px 24px',
+                border: 'none',
+                borderBottom: stationSubTab === 0 ? '3px solid #1976d2' : '3px solid transparent',
+                background: 'none',
+                fontWeight: stationSubTab === 0 ? 700 : 400,
+                fontSize: 17,
+                color: stationSubTab === 0 ? '#1976d2' : '#444',
+                cursor: 'pointer',
+                outline: 'none',
+                marginRight: 16,
+                transition: 'border-bottom 0.2s, color 0.2s',
+              }}
+              onClick={() => setStationSubTab(0)}
+            >
+              Active Stations
+            </button>
+            <button
+              style={{
+                padding: '8px 24px',
+                border: 'none',
+                borderBottom: stationSubTab === 1 ? '3px solid #1976d2' : '3px solid transparent',
+                background: 'none',
+                fontWeight: stationSubTab === 1 ? 700 : 400,
+                fontSize: 17,
+                color: stationSubTab === 1 ? '#1976d2' : '#444',
+                cursor: 'pointer',
+                outline: 'none',
+                transition: 'border-bottom 0.2s, color 0.2s',
+              }}
+              onClick={() => setStationSubTab(1)}
+            >
+              Completed Stations
+            </button>
+          </div>
+          <div style={{ width: '100%' }}>
+            {stationSubTab === 0 ? (
+              <ActiveStationList refresh={stationListRefresh} />
+            ) : (
+              <CompletedStationList refresh={stationListRefresh} />
+            )}
+          </div>
         </Box>
       )}
+  // Sub-tab for stations: 0 = Active, 1 = Completed
+  const [stationSubTab, setStationSubTab] = React.useState(0);
       {tab === 3 && (
         <StationMuxInfo />
       )}

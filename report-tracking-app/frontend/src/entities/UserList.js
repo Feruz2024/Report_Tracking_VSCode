@@ -92,7 +92,7 @@ function UserList() {
             <button
               style={{ position: 'absolute', top: 12, right: 12, fontSize: 13, zIndex: 2, background: '#e2e8f0', border: 'none', borderRadius: 6, padding: '2px 10px', cursor: 'pointer' }}
               onClick={() => {
-                window.open(`/edit-user/${user.id}`, 'EditUser', 'width=600,height=700');
+                window.open(`/edit-user/${user.id}?token=${localStorage.getItem('token')}`, 'EditUser', 'width=600,height=700');
               }}
             >
               Edit

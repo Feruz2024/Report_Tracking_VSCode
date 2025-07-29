@@ -412,7 +412,7 @@ function AssignmentList({ analystView = false, username = null, refresh }) {
                                             style={{ fontSize: 12, marginLeft: 8, zIndex: 2, opacity: canEdit ? 1 : 0.5, cursor: canEdit ? 'pointer' : 'not-allowed' }}
                                             onClick={() => {
                                               if (canEdit) {
-                                                window.open(`/edit-assignment/${assignment.id}`, 'EditAssignment', 'width=700,height=800');
+                                                window.open(`/edit-assignment/${assignment.id}?token=${localStorage.getItem('token')}`, 'EditAssignment', 'width=700,height=800');
                                               }
                                             }}
                                             disabled={!canEdit}
